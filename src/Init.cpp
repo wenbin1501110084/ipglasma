@@ -1022,8 +1022,31 @@ void Init::setColorChargeDensity(
               break;
           }
       }
+      int Left_Z1 = 0; int Left_A1 = 0;
+      int Left_Z2 = 0; int Left_A2 = 0;
+      for (int i = 0; i < A1; i++) {
+          if (nucleusA_.at(i).collided == 0) {
+              Left_A1++;
+              if (nucleusA_.at(i).proton == 1) Left_Z1++;
+          }
+          
+      }
+      
+      for (int i = 0; i < A2; i++) {
+          if (nucleusB_.at(i).collided == 0) {
+              Left_A2++;
+              if (nucleusB_.at(i).proton == 1) Left_Z2++;
+          }
+          
+      }
+      
+           
       outputFile << BmagAB << "\n";
       outputFile << impact_b << "\n";
+      outputFile << Left_A1 << "\n";
+      outputFile << Left_Z1 << "\n";
+      outputFile << Left_A2 << "\n";
+      outputFile << Left_Z2 << "\n";
       outputFile.close(); 
       
       
