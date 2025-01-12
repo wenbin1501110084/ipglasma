@@ -336,9 +336,40 @@ int main(int argc, char *argv[]) {
         Lattice lat(param, param->getNc(), param->getSize());
         messager.info("Lattice generated.");
 
+        int loop_times = 0;
         while (param->getSuccess() == 0) {
             param->setSuccess(0);
+            
+            int random_temp = param->getRandomSeed() + loop_times*1000;
+            random_temp = std::abs(random_temp);
+            if ( param->Usegenerated_seed()) {
+                ifstream fin;
+                 fin.open("random_temp");
+                 if (fin) {
+                     if (!fin.eof()) {
+                        fin >> random_temp;
+                    } else {
+                        cerr << "Error: Not enough random seeds for the number of "
+                             << "processors selected. Exiting." << endl;
+                        exit(1);
+                    }
+                }
+                fin.close();
+            } else {
+                std::ofstream minbinas_b("random_temp", std::ios::out);
+                minbinas_b << random_temp << endl;
+                minbinas_b.close();
+            }
+            messager << "Random seed inside loop = " << random_temp;
+            messager.flush("info");
+            
+            param->setRandomSeed(random_temp);
+            
+            random->init_genrand64(random_temp);
+            random->gslRandomInit(random_temp);
 
+            loop_times++;
+            
             // initialize gsl random number generator (used for non-Gaussian
             // distributions)
             // random->gslRandomInit(rnum);
@@ -571,6 +602,7 @@ int readInput(
     param->setSubNucleonParamSet(setup->IFind(file_name, "SubNucleonParamSet"));
     param->setoutputV_only(setup->IFind(file_name, "outputV_only"));
     param->setoutput_spectator_V(setup->IFind(file_name, "output_spectator_V"));
+    param->setusegenerated_seed(setup->IFind(file_name, "usegenerated_seed"));
     if (param->getSubNucleonParamType() > 0) {
         param->loadPosteriorParameterSets(param->getSubNucleonParamType());
     }

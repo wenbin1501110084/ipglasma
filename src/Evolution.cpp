@@ -3174,7 +3174,28 @@ int Evolution::multiplicity(
                                     c))))
                << endl;
         foutNN.close();
+        
+        // Write data to the file
+        std::ofstream minbinas_b("minbinas_ngluon", std::ios::out);
+        minbinas_b << param->getNpart() << " " << dNdeta << " " << param->getTpp()
+                   << " " << param->getb() << " " << dEdeta << " "
+                   << param->getRandomSeed() << " "
+                   << " " << dNdetaCut << " " << dEdetaCut << " " << dNdetaCut2
+                   << " " << dEdetaCut2 << " "
+                   << g * g
+                      / (4. * M_PI * 4. * M_PI
+                         / (9.
+                            * log(
+                                pow(pow(muZero / 0.2, 2. / c)
+                                        + pow(
+                                            param->getRunWithThisFactorTimesQs()
+                                                * param->getAverageQs() / 0.2,
+                                            2. / c),
+                                    c))))
+                   << endl;
+        minbinas_b.close();
     }
+    
 
     for (int i = 0; i < N * N; i++) {
         delete E1[i];

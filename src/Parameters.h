@@ -213,6 +213,7 @@ class Parameters {
                                 // plane
 
     bool computeGluonMultiplicity_;  // flag to compute gluonMultiplicity
+    bool usegenerated_seed;
 
   public:
     // constructor:
@@ -486,6 +487,17 @@ class Parameters {
     }
     bool getComputeGluonMultiplicity() const {
         return computeGluonMultiplicity_;
+    }
+    
+    void setusegenerated_seed(int x) {
+        if (x == 0) {
+            usegenerated_seed = false;
+        } else {
+            usegenerated_seed = true;
+        }
+    }
+    bool Usegenerated_seed() const {
+        return usegenerated_seed;
     }
 
     void loadPosteriorParameterSetsFromFile(
