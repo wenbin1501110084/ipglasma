@@ -4,6 +4,7 @@ set (SOURCES
     Matrix.cpp
     Setup.cpp
     Init.cpp
+    jimwlk.cpp
     Random.cpp
     Group.cpp
     Lattice.cpp
@@ -16,6 +17,7 @@ set (SOURCES
     MyEigen.cpp
     pretty_ostream.cpp
     Parameters.cpp
+    vector.cpp
     )
 
 set(CompileFlags "")
