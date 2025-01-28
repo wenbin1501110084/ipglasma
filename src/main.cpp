@@ -347,6 +347,7 @@ int main(int argc, char *argv[]) {
 
             // initialize U-fields on the lattice
             Initialization_method init_method;
+            Initialization_method init_method2 = SAMPLE_COLOR_CHARGES;
             if (param->getReadInitialWilsonLines() == 0) {
                 init_method = SAMPLE_COLOR_CHARGES;
             } else {
@@ -364,6 +365,7 @@ int main(int argc, char *argv[]) {
             }
 
             if (param->getUseJIMWLK()) {
+                init_method2 = INITIALIZE_AFTER_JIMWLK;
                 messager.info("Start JIMWLK");
                 JIMWLK jimwlkSolver(*param, &group, &lat, random);
                 messager.info("Finish JIMWLK");
@@ -373,7 +375,7 @@ int main(int argc, char *argv[]) {
             }
             init.init(
                 &lat, &group, param, random, &glauber,
-                INITIALIZE_AFTER_JIMWLK);  // Note: negative value for the last
+                init_method2);  // Note: negative value for the last
                                            // parameter (READFROMFILE)
                                            // corresponds to
             // 2nd stage in the JIMWLK evolution setup
