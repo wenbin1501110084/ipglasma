@@ -25,7 +25,6 @@
 #include "Random.h"
 #include "Setup.h"
 #include "Spinor.h"
-#include "jimwlk.h"
 #include "pretty_ostream.h"
 
 #define _SECURE_SCL 0
@@ -335,7 +334,6 @@ int main(int argc, char *argv[]) {
 
         // allocate lattice
         Lattice lat(param, param->getNc(), param->getSize());
-        //JIMWLK jimwlkSolver(*param, &group, &lat, random);// passing the wilson line from Init.cpp to JIMWLK U2, Ux, Uy... Note, wenbin
         messager.info("Lattice generated.");
 
         while (param->getSuccess() == 0) {
@@ -346,45 +344,16 @@ int main(int argc, char *argv[]) {
             // random->gslRandomInit(rnum);
 
             // initialize U-fields on the lattice
-            Initialization_method init_method;
-            Initialization_method init_method2 = SAMPLE_COLOR_CHARGES;
-            if (param->getReadInitialWilsonLines() == 0) {
-                init_method = SAMPLE_COLOR_CHARGES;
-            } else {
-                init_method = (param->getReadInitialWilsonLines() == 1)
-                                  ? READ_WLINE_TEXT
-                                  : READ_WLINE_BINARY;
-            }
             init.init(
                 &lat, &group, param, random, &glauber,
-                init_method);  // First generate the V
-            messager.info("Generate V done.");
+                param->getReadInitialWilsonLines());
+            messager.info("initialization done.");
 
             if (param->getSuccess() == 0) {
                 continue;
             }
 
-            if (param->getUseJIMWLK()) {
-                init_method2 = INITIALIZE_AFTER_JIMWLK;
-                messager.info("Start JIMWLK");
-                JIMWLK jimwlkSolver(*param, &group, &lat, random);
-                messager.info("Finish JIMWLK");
-
-                if (param->getWriteInitialWilsonLines())
-                    init.WriteInitialWilsonLines("evolved_", &lat, param);
-            }
-            init.init(
-                &lat, &group, param, random, &glauber,
-                init_method2);  // Note: negative value for the last
-                                           // parameter (READFROMFILE)
-                                           // corresponds to
-            // 2nd stage in the JIMWLK evolution setup
-            // This is necessary also if the JIMWLK evolution is not done, as
-            // only at this point one shifts the nuclei based on the sampled
-            // impact parameter
-            messager.info("2nd stage initialization after JIMWLK done");
-
-            messager.info("Start CYM evolution");
+            messager.info("Start evolution");
             // do the CYM evolution of the initialized fields using parmeters in
             // param
             evolution.run(&lat, &group, param);
@@ -545,6 +514,7 @@ int readInput(
         param->setWSdR_np(setup->DFind(file_name, "dR_np"));
         param->setWSda_np(setup->DFind(file_name, "da_np"));
     }
+    param->setFluxTubeNormalization(setup->DFind(file_name, "fluxtubeNormalization"));
     param->setbmin(setup->DFind(file_name, "bmin"));
     param->setbmax(setup->DFind(file_name, "bmax"));
     param->setRotateReactionPlane(
@@ -603,23 +573,6 @@ int readInput(
     if (param->getSubNucleonParamType() > 0) {
         param->loadPosteriorParameterSets(param->getSubNucleonParamType());
     }
-
-
-    param->setFluxTubeNormalization(setup->DFind(file_name, "fluxtubeNormalization"));
-
-    // JIMWLK parameters
-    param->setUseJIMWLK(setup->IFind(file_name, "useJIMWLK"));
-    param->setSimpleLangevin(setup->IFind(file_name, "simpleLangevin"));
-    param->setMu0_jimwlk(setup->DFind(file_name, "mu0_jimwlk"));
-    param->setLambdaQCD_jimwlk(setup->DFind(file_name,"Lambda_QCD_jimwlk"));
-    param->setm_jimwlk(setup->DFind(file_name,"m_jimwlk"));
-    param->setJimwlk_alphas(setup->IFind(file_name,"alphas_jimwlk"));
-    param->setDs_jimwlk(setup->DFind(file_name,"Ds_jimwlk"));
-    param->SetJimwlk_x_projectile(setup->DFind(file_name,"x_projectile_jimwlk"));
-    param->SetJimwlk_x_target(setup->DFind(file_name,"x_target_jimwlk"));
-    param->setJimwlk_x0(setup->DFind(file_name,"jimwlk_ic_x"));
-    
-    
     if (rank == 0) cout << "done." << endl;
 
     return 0;

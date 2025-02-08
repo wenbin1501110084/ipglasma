@@ -4,7 +4,6 @@ set (SOURCES
     Matrix.cpp
     Setup.cpp
     Init.cpp
-    jimwlk.cpp
     Random.cpp
     Group.cpp
     Lattice.cpp

@@ -3,7 +3,7 @@
 Flag=$1
 
 # format the code base
-bash formatCode.sh
+#bash formatCode.sh
 
 mkdir -p build
 cd build

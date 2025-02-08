@@ -15,7 +15,6 @@
 #include "Random.h"
 #include "pretty_ostream.h"
 #include "vector.hpp" // new in stringy proton: uses my vector class for easier vector algebra, but 
-// used when needed in the stringy proton case, but other parts of the code still use the old structure
 
 enum Initialization_method {
     SAMPLE_COLOR_CHARGES,
@@ -23,6 +22,7 @@ enum Initialization_method {
     READ_WLINE_BINARY,
     INITIALIZE_AFTER_JIMWLK
 };
+
 
 class Init {
   private:
@@ -32,6 +32,7 @@ class Init {
         200;  // updated in March 2019 to a larger T_A range
 
     double const deltaYNuc = 0.25;  // for the new table
+
     FFT fft;
     //  Matrix** A;
     //  Glauber *glauber;
@@ -55,11 +56,7 @@ class Init {
     Random *random_ptr_;
 
     Matrix one_;
-    vector<vector<double>> xq1, xq2, yq1, yq2, zq1,zq2, BGq1, BGq2, gauss1, gauss2;
-    std::vector<Vec> hotspots_1;     // 3d positions for hot spots - some overlap with above...
-    std::vector<Vec> hotspots_2;
-    Vec fermatpoint_1; // Fluxtubes merge at this point
-    Vec fermatpoint_2;
+
   public:
     // Constructor.
     Init(const int nn[]) : fft(nn) {};
@@ -68,7 +65,7 @@ class Init {
 
     void init(
         Lattice *lat, Group *group, Parameters *param, Random *random,
-        Glauber *glauber, Initialization_method init_method);
+        Glauber *glauber, int READFROMFILE);
     void sampleTA(Parameters *param, Random *random, Glauber *glauber);
     void readNuclearQs(Parameters *param);
     void solveAxbComplex(double *Jab, double *Fa, std::vector<double> &xvec);
@@ -77,18 +74,12 @@ class Init {
     double getNuclearQs2(double Qs2atZeroY, double y);
     void setColorChargeDensity(
         Lattice *lat, Parameters *param, Random *random, Glauber *glauber);
-    void computeCollisionGeometryQuantities(
-        Lattice *lat, Parameters *param, Random *random);
     void setV(Lattice *lat, Parameters *param, Random *random);
-    void readVFromFile(Lattice *lat, Parameters *param, int format);
-    void readV2(Lattice *lat, Parameters *param, Glauber *glauber);
-
+    void readV(Lattice *lat, Parameters *param, int format);
     double QuarkThickness(double dist, int i, Parameters* param);
 
-    double FluxTubeThickness(std::vector<Vec> hotspots, Vec b, Parameters *param);
-
-    void WriteInitialWilsonLines(std::string output_dir, Lattice *lat, Parameters *param);
-
+    double FluxTubeThickness(std::vector<Vec> hotspots, std::vector<double> Qsflucts, Vec b, Parameters *param);
+    
     // void eccentricity(Lattice *lat, Group *group, Parameters *param, Random
     // *random, Glauber *glauber);
     void multiplicity(Lattice *lat, Parameters *param);

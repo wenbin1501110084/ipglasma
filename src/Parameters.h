@@ -68,7 +68,6 @@ class Parameters {
                         // nucleus A
     double QsmuRatioB;  // ratio between Qs and mu: Q_s = QsmuRatio * g^2 mu for
                         // nucleus B
-    double fluxtube_normalization; // normalization factor for the flux tube density
     double rapidity;  // rapidity to use when getting Q_s from IPSat. Basically
                       // to pick x for now
     int usePseudoRapidity;  // if selected (1) the variable 'rapidity' will
@@ -212,24 +211,7 @@ class Parameters {
                                 // plane
 
     bool computeGluonMultiplicity_;  // flag to compute gluonMultiplicity
-
-    bool useJIMWLK; // flag to use JIMWLK evolution
-    bool simpleLangevin_;
-    int which_stage;
-    double first_b; // Impact parameter sampled before the JIMWLK evolution is saved here
-
-    double jimwlk_alphas;  // 0 = running coupling, positive value = fixed
-                           // coupling
-    double m_jimwlk;
-    double mu0_jimwlk;
-    double LambdaQCD_jimwlk;
-    //int steps_jimwlk;
-    //int measureSteps_jimwlk;
-    double ds_jimwlk;
-    double x0_jimwlk; // Bjorken-x at the initial condition of the JIMLWK evolution
-
-    double jimwlk_x1; // Bjorken x for the nucleus A (projectile)
-    double jimwlk_x2;  // Bjorken x for the nucleus B (target)
+    double fluxtube_normalization; // normalization factor for the flux tube density
 
   public:
     // constructor:
@@ -504,57 +486,14 @@ class Parameters {
     bool getComputeGluonMultiplicity() const {
         return computeGluonMultiplicity_;
     }
+    
+    double getFluxTubeNormalization() { return fluxtube_normalization; }
+    void setFluxTubeNormalization(double x) { fluxtube_normalization = x; }
 
     void loadPosteriorParameterSetsFromFile(
         std::string posteriorFileName,
         std::vector<std::vector<float>> &ParamSet);
     void loadPosteriorParameterSets(const int itype);
     void setParamsWithPosteriorParameterSet(const int itype, int iset);
-    void setwhich_stage(int x) { which_stage = x; }
-    int getwhich_stage() { return which_stage; }
-    void set_firstb(double x) { first_b = x; }
-    double get_firstb() { return first_b; }
-    int get_added_lines() { return 4; }
-
-    double getFluxTubeNormalization() { return fluxtube_normalization; }
-    void setFluxTubeNormalization(double x) { fluxtube_normalization = x; }
-    
-    // JIMWLK functions
-    void setm_jimwlk(double x) { m_jimwlk = x; };
-    double getm_jimwlk() { return m_jimwlk; }
-    void setMu0_jimwlk(double x) { mu0_jimwlk = x; }
-    double getMu0_jimwlk() { return mu0_jimwlk; }
-    void setSimpleLangevin(int x) {
-        if (x == 0) {
-            simpleLangevin_ = false;
-        } else {
-            simpleLangevin_ = x;
-        }
-    }
-    bool getSimpleLangevin() const { return simpleLangevin_; }
-    void setLambdaQCD_jimwlk(double x) { LambdaQCD_jimwlk = x; }
-    double getLambdaQCD_jimwlk() { return LambdaQCD_jimwlk; }
-    void SetJimwlk_x_projectile(double x) { jimwlk_x1 = x; }
-    double GetJimwlk_x_projectile() { return jimwlk_x1; }
-    void SetJimwlk_x_target(double x) { jimwlk_x2 = x; }
-    double GetJimwlk_x_target() { return jimwlk_x2; }
-    //void setMeasureSteps_jimwlk(int x) { measureSteps_jimwlk = x; };
-    //int getMeasureSteps_jimwlk() { return measureSteps_jimwlk; }
-    void setDs_jimwlk(double x) { ds_jimwlk = x; }
-    double getDs_jimwlk() { return ds_jimwlk; }
-    void setJimwlk_alphas(double as) { jimwlk_alphas = as; }
-    double getJimwlk_alphas() { return jimwlk_alphas; }
-    void setJimwlk_x0(double x) { x0_jimwlk = x; }
-    double getJimwlk_x0() { return x0_jimwlk; }
-    bool getUseJIMWLK() const { return useJIMWLK; }
-    void setUseJIMWLK(int x) {
-        if (x == 0) {
-            useJIMWLK = false;
-        } else {
-            useJIMWLK = true;
-        }
-    }
-
-    
 };
 #endif  // Parameters_H

@@ -195,7 +195,6 @@ void Init::sampleTA(Parameters *param, Random *random, Glauber *glauber) {
                      << " is not available, generate the nucleus configuration "
                      << "using Woods-Saxon distribution instead.";
             messager.flush("info");
-
             generate_nucleus_configuration(
                 random, glauber->nucleusA1(), glauber->nucleusZ1(),
                 glauber->GlauberData.Projectile.a_WS,
@@ -248,8 +247,7 @@ void Init::sampleTA(Parameters *param, Random *random, Glauber *glauber) {
                 glauber->GlauberData.Target.dR_np,
                 glauber->GlauberData.Target.da_np, nucleusB_);
         }
-    }
-    else if (param->getNucleonPositionsFromFile() == 2) {
+    } else if (param->getNucleonPositionsFromFile() == 2) {
         // Read in Alvioli's nucleon positions including correlations
         if (glauber->nucleusA1() != 208 && glauber->nucleusA2() != 208) {
             cerr << "[Init.cpp]: The option 'getNucleonPositionsFromFile == 2' "
@@ -683,10 +681,6 @@ void Init::samplePartonPositions(
             z_array[iq] -= avgzq;
         }
     }
-
-
-
-
 }
 
 
@@ -697,6 +691,7 @@ struct inthelper_fluxtube
     double z;
     Vec fermatpoint;
     std::vector<Vec> quarks;
+    std::vector<double> Qsflucts;
     Vec b;
 };
 
@@ -705,24 +700,15 @@ double inthelperf_fluxtube_z(double z, void* p)
     inthelper_fluxtube* par = (inthelper_fluxtube*)p;
     
     Vec b3d(par->b.GetX(), par->b.GetY(), z);
-    
-    /*cout << "Quarks: " << endl;
-    cout << par->quarks[0] << endl << par->quarks[1] << endl << par->quarks[2] << endl;
-    cout << "center " << par->center << endl;
-    cout << "b " << b3d << endl;
-    */
-    double mindist=999999999999;
-    double density=0;
-    double maxdensity=0;
+    double mindist=999999999999.0;
+    double density=0.0;
+    double maxdensity=0.0;
     for (unsigned int i=0; i<par->quarks.size(); i++)
     {
 
         Vec quark_to_b = b3d - par->quarks[i];
         Vec quark_to_center = par->fermatpoint - par->quarks[i];
         Vec center_to_b = b3d - par->fermatpoint;
-        
-        
-        
         // If we are "outside" the line, then density decreases as a Gaussian
         // from the quark/center
         // We also end up here if one angle of the triangle is larger than 120 degrees, when the Fermat
@@ -730,19 +716,17 @@ double inthelperf_fluxtube_z(double z, void* p)
 
         if (quark_to_b.LenSqr() > quark_to_center.LenSqr() or center_to_b.LenSqr() > quark_to_center.LenSqr())
         {
-            //cout << "distance from quark "<< i << ": " << quark_to_b.Len() << "   quark_to_center dist " << quark_to_center.Len() << endl;
-            double dist = std::min( quark_to_b.Len(), center_to_b.Len());
-            if (dist < mindist)
+            double dist_double = std::min( quark_to_b.Len(), center_to_b.Len());
+            if (dist_double < mindist)
             {
-                mindist=dist;
+                mindist=dist_double;
             }
 
-            double tmpdensity = par->init->QuarkThickness(dist, i, par->param);
+            double tmpdensity = par->init->QuarkThickness(dist_double, i, par->param) * par->Qsflucts[i];
             density += tmpdensity; 
 
             if (tmpdensity > maxdensity)
                 maxdensity = tmpdensity;
-
             continue;
             //return par->proton->QuarkThickness(dist, 0);
         }
@@ -754,11 +738,9 @@ double inthelperf_fluxtube_z(double z, void* p)
         projection*= scaling;
         
         Vec dist = quark_to_b - projection;
-
-        // Todo: currently no support for Q_s fluctuations, so we simply pass quark id 0    
-        double tmpdensity= par->init->QuarkThickness(dist.Len(), 0, par->param);
+   
+        double tmpdensity= par->init->QuarkThickness(dist.Len(), i, par->param) * par->Qsflucts[i];
         density += tmpdensity;
-        
         if (tmpdensity > maxdensity)
             maxdensity = tmpdensity;
 
@@ -782,14 +764,13 @@ double inthelperf_fluxtube_z(double z, void* p)
         cout << "density: " << density << " maxdensity: " << maxdensity << endl;
         exit(1);
     }
-
     return par->param->getFluxTubeNormalization() * maxdensity;
 }
 
 /*
  * Fluxtube proton: calculate the thickness function by integrating over the z coordinate
 */
-double Init:: FluxTubeThickness(std::vector<Vec> hotspots, Vec b, Parameters *param)
+double Init::FluxTubeThickness(std::vector<Vec> hotspots, std::vector<double> Qsflucts, Vec b, Parameters *param)
 {
     inthelper_fluxtube par;
     par.init = this;
@@ -797,19 +778,18 @@ double Init:: FluxTubeThickness(std::vector<Vec> hotspots, Vec b, Parameters *pa
     par.fermatpoint = GeometricMedian(hotspots);
     par.param = param;
     par.quarks = hotspots;
+    par.Qsflucts=Qsflucts;
     par.b=b;
-
 
     gsl_function f; f.params=&par;
     f.function = &inthelperf_fluxtube_z;
     double result,error;
     gsl_integration_workspace * w =  gsl_integration_workspace_alloc (100);
     //gsl_integration_workspace * w =  gsl_integration_workspace_alloc (10);
-    gsl_integration_qag (&f, -50, 50, 0, 1e-2, 100, GSL_INTEG_GAUSS15,
+    gsl_integration_qag (&f, -10.0, 10.0, 0.0, 0.02, 100, GSL_INTEG_GAUSS15,
                           w, &result, &error);
 
     gsl_integration_workspace_free (w);
-
     return result;
     
 
@@ -898,10 +878,7 @@ double Init::getNuclearQs2(double T, double y) {
 }
 
 // set g^2\mu^2 as the sum of the individual nucleons' g^2\mu^2, using Q_s(b,y)
-// prop to g^mu(b,y)
-// Also compute N_part using Glauber
-// If param->getwhich_stage() == 2, then here we shift nuclei back to b=0 for
-// JIMLWK evolution (to be shifted back to b after JIMLWK in readV2())
+// prop tp g^mu(b,y) also compute N_part using Glauber
 void Init::setColorChargeDensity(
     Lattice *lat, Parameters *param, Random *random, Glauber *glauber) {
     std::cout << "set color charge density ..." << std::endl;
@@ -919,15 +896,10 @@ void Init::setColorChargeDensity(
     //  static_cast<int>(glauber->nucleusA2()) * param->getAverageOverNuclei();
     //}
 
-    if (param->getwhich_stage() != 0 and param->getwhich_stage() != 2) {
-        messager.error(
-            "setColorChargeDensity: which_stage should be 0 or 2. Exiting.");
-    }
-
+    int Npart = 0;
+    int Ncoll = 0;
     double g2mu2A, g2mu2B;
-    double impact_b = param->getb();
-    if (param->getwhich_stage() == 2) impact_b = -1. * impact_b;
-    // in stage 2 we shift back to b=0 for JIMWLK evolution
+    const double impact_b = param->getb();
     double r;
     double L = param->getL();
     double P, m;
@@ -954,7 +926,14 @@ void Init::setColorChargeDensity(
 
     double yIn = rapidity;  // param->getRapidity();
     double a = L / N;       // lattice spacing in fm
-
+    double dx, dy, dij;
+    double d2 = param->getSigmaNN() / (M_PI * 10.);  // in fm^2
+    double averageQs = 0.;
+    double averageQs2 = 0.;
+    double averageQs2Avg = 0.;
+    double averageQs2min = 0.;
+    double averageQs2min2 = 0.;
+    int count = 0;
     double nucleiInAverage;
     nucleiInAverage = static_cast<double>(param->getAverageOverNuclei());
 
@@ -1014,7 +993,7 @@ void Init::setColorChargeDensity(
     // compute N_part
     // positions are shifted here. not later as in previous versions. bshift
     // below (in init(..)) is zero.
-    /*
+
     double phiRP = 0.;
     if (param->getRotateReactionPlane()) {
         phiRP = 2 * M_PI * random->genrand64_real2();
@@ -1029,24 +1008,6 @@ void Init::setColorChargeDensity(
         nucleusB_.at(i).x += impact_b / 2. * cos(phiRP);
         nucleusB_.at(i).y += impact_b / 2. * sin(phiRP);
     }
-    */
-    if (A1 < 4 && A2 > 1) {
-        for (int i = 0; i < A2; i++) {
-            nucleusB_.at(i).x = nucleusB_.at(i).x + impact_b;
-        }
-    } else if (A2 < 4 && A1 > 1) {
-        for (int i = 0; i < A1; i++) {
-            nucleusA_.at(i).x = nucleusA_.at(i).x - impact_b;
-        }
-    } else {
-        for (int i = 0; i < A1; i++) {// shift the nuclei's position by -b/2 or +b/2 respectively
-            nucleusA_.at(i).x = nucleusA_.at(i).x - impact_b / 2.; // shift by b here Wenbin
-        }
-        for (int i = 0; i < A2; i++) {// shift the nuclei's position by -b/2 or +b/2 respectively
-            nucleusB_.at(i).x = nucleusB_.at(i).x + impact_b / 2.; // shift by b here Wenbin
-        }
-    }
-
 
     double xi = param->getProtonAnisotropy();
 
@@ -1069,60 +1030,68 @@ void Init::setColorChargeDensity(
     }
 
     const int NqFlag = param->getUseConstituentQuarkProton();
-    // vector<vector<double>> xq1, xq2, yq1, yq2, BGq1, BGq2, gauss1, gauss2;
+    vector<vector<double>> xq1, xq2, yq1, yq2, zq1, zq2, BGq1, BGq2, gauss1, gauss2;
     vector<double> x_array, y_array, z_array, BGq_array, gauss_array;
-    // set the arrays for the first step of the first stage
-    if (param->getwhich_stage() == 0) {
-        xq1.clear();
-        xq2.clear();
-        yq1.clear();
-        yq2.clear();
-        zq1.clear();
-        zq2.clear();
-        BGq1.clear();
-        BGq2.clear();
-        gauss1.clear();
-        gauss2.clear();
-        for (int i = 0; i < A1; i++) {
-            x_array.clear();
-            if (NqFlag > 0) {
-                samplePartonPositions(
-                    param, random, x_array, y_array, z_array, BGq_array);
-                // if (param->getShiftConstituentQuarkProtonOrigin())
-                // Move center of mass to the origin
-                // Note that 1607.01711 this is not done, so parameters quoted in
-                // that paper can't be used if this is done
-                xq1.push_back(x_array);
-                yq1.push_back(y_array);
-                zq1.push_back(z_array);
-                BGq1.push_back(BGq_array);
-            }
-            int Npartons = std::max(1, static_cast<int>(x_array.size()));
-            sampleQsNormalization(random, param, Npartons, gauss_array);
-            gauss1.push_back(gauss_array);
-        }           
 
-        for (int i = 0; i < A2; i++) {
-            x_array.clear();
-            if (NqFlag > 0) {
-                samplePartonPositions(
-                    param, random, x_array, y_array, z_array, BGq_array);
-                xq2.push_back(x_array);
-                yq2.push_back(y_array);
-                zq2.push_back(z_array);
-                BGq2.push_back(BGq_array);
-            }
-            int Npartons = std::max(1, static_cast<int>(x_array.size()));
-            sampleQsNormalization(random, param, Npartons, gauss_array);
-            gauss2.push_back(gauss_array);
+    xq1.clear();
+    xq2.clear();
+    yq1.clear();
+    yq2.clear();
+    zq1.clear();
+    zq2.clear();
+    BGq1.clear();
+    BGq2.clear();
+    gauss1.clear();
+    gauss2.clear();
+    
+    for (int i = 0; i < A1; i++) {
+        x_array.clear();
+        y_array.clear();
+        z_array.clear();
+        BGq_array.clear();
+        gauss_array.clear();
+        if (NqFlag > 0) {
+            samplePartonPositions(
+                param, random, x_array, y_array, z_array, BGq_array);
+            // if (param->getShiftConstituentQuarkProtonOrigin())
+            // Move center of mass to the origin
+            // Note that 1607.01711 this is not done, so parameters quoted in
+            // that paper can't be used if this is done
+            xq1.push_back(x_array);
+            yq1.push_back(y_array);
+            zq1.push_back(z_array);
+            BGq1.push_back(BGq_array);
         }
+        int Npartons = std::max(1, static_cast<int>(x_array.size()));
+        sampleQsNormalization(random, param, Npartons, gauss_array);
+        gauss1.push_back(gauss_array);
     }
 
-    // test what a smooth Woods-Saxon would give
+    for (int i = 0; i < A2; i++) {
+        x_array.clear();
+        y_array.clear();
+        z_array.clear();
+        BGq_array.clear();
+        gauss_array.clear();
+        if (NqFlag > 0) {
+            samplePartonPositions(
+                param, random, x_array, y_array, z_array, BGq_array);
+            xq2.push_back(x_array);
+            yq2.push_back(y_array);
+            zq2.push_back(z_array);
+            BGq2.push_back(BGq_array);
+        }
+        int Npartons = std::max(1, static_cast<int>(x_array.size()));
+        sampleQsNormalization(random, param, Npartons, gauss_array);
+        gauss2.push_back(gauss_array);
+    }
+
+    // test what a smmoth Woods-Saxon would give
     if (param->getUseSmoothNucleus() == 1) {
         cout << "Using smooth nucleus for test purposes. Does not include "
                 "deformation."
              << endl;
+        Npart = 2;  // avoid break below
         double xA, xB;
         double y;
         double T;
@@ -1185,7 +1154,7 @@ void Init::setColorChargeDensity(
         //   }
         // cout << "normTest=" << normTest << endl;
         param->setSuccess(1);
-    } else { // Non-smooth nucleus
+    } else {
         // add all T_p's (new in version 1.2)
 #pragma omp parallel
         {
@@ -1210,32 +1179,38 @@ void Init::setColorChargeDensity(
                         ym = nucleusA_.at(i).y;
 
                         if (param->getUseConstituentQuarkProton() > 0) {
+                            /*
+                            T = 0.;
+                            for (unsigned int iq = 0; iq < xq1[i].size();
+                                 iq++) {
+                                bp2 = (xm + xq1[i][iq] - x)
+                                          * (xm + xq1[i][iq] - x)
+                                      + (ym + yq1[i][iq] - y)
+                                            * (ym + yq1[i][iq] - y);
+                                bp2 /= hbarc * hbarc;
+
+                                T +=
+                                    exp(-bp2 / (2. * BGq1[i][iq]))
+                                    / (2. * M_PI * BGq1[i][iq])
+                                    / (static_cast<double>(xq1[i].size()))
+                                    * gauss1[i][iq];  // I removed the 2/3 here
+                                                      // to make it a bit bigger
+                            }
+                            */
                             T = 0.;
                             std::vector<Vec> hotspots;
+                            std::vector<double> Qsflucts;
                             for (unsigned int iq = 0; iq < xq1[i].size();
                                  iq++) {
                                     Vec tmp(xq1[i][iq], yq1[i][iq], zq1[i][iq]);
                                     hotspots.push_back(tmp);
+                                    Qsflucts.push_back(gauss1[i][iq]);
                                  }
                                 
                                 Vec b_nucleon = Vec((xm - x), (ym - y),0); // distance from the center of the nucleon
                                 
-                                T += FluxTubeThickness(hotspots, b_nucleon, param);
-                                    
-
-                                // bp2 = (xm + xq1[i][iq] - x)
-                                //           * (xm + xq1[i][iq] - x)
-                                //       + (ym + yq1[i][iq] - y)
-                                //             * (ym + yq1[i][iq] - y);
-                                // bp2 /= hbarc * hbarc;
-
-                                // T +=
-                                //     exp(-bp2 / (2. * BGq1[i][iq]))
-                                //     / (2. * M_PI * BGq1[i][iq])
-                                //     / (static_cast<double>(xq1[i].size()))
-                                //     * gauss1[i][iq];  // I removed the 2/3 here
-                                //                       // to make it a bit bigger
-                            
+                                T += FluxTubeThickness(hotspots, Qsflucts, b_nucleon, param);
+                                
                         } else {
                             const double BG = param->getBG();
                             phi = nucleusA_.at(i).phi;
@@ -1255,9 +1230,7 @@ void Init::setColorChargeDensity(
                         lat->cells[localpos]->setTpA(
                             lat->cells[localpos]->getTpA()
                             + T / nucleiInAverage);  // add up all T_p
-
                     }
-                    
 
                     // nucleus B
                     lat->cells[localpos]->setTpB(0.);
@@ -1266,20 +1239,8 @@ void Init::setColorChargeDensity(
                         ym = nucleusB_.at(i).y;
 
                         if (param->getUseConstituentQuarkProton() > 0) {
+                            /*
                             T = 0.;
-                            std::vector<Vec> hotspots;
-                            for (unsigned int iq = 0; iq < xq1[i].size();
-                                 iq++) {
-                                    Vec tmp(xq2[i][iq], yq2[i][iq], zq2[i][iq]);
-                                    hotspots.push_back(tmp);
-                                 }
-                                
-                                Vec b_nucleon = Vec((xm - x), (ym - y),0); // distance from the center of the nucleon
-                                
-                                T += FluxTubeThickness(hotspots, b_nucleon, param);
-
-                                /*
-                    
                             for (unsigned int iq = 0; iq < xq2[i].size();
                                  iq++) {
                                 bp2 = (xm + xq2[i][iq] - x)
@@ -1292,8 +1253,20 @@ void Init::setColorChargeDensity(
                                      / (2. * M_PI * BGq2[i][iq])
                                      / (static_cast<double>(xq2[i].size()))
                                      * gauss2[i][iq];
-
-                            } */
+                            }*/
+                            T = 0.;
+                            std::vector<Vec> hotspots;
+                            std::vector<double> Qsflucts;
+                            for (unsigned int iq = 0; iq < xq2[i].size();
+                                 iq++) {
+                                    Vec tmp(xq2[i][iq], yq2[i][iq], zq2[i][iq]);
+                                    hotspots.push_back(tmp);
+                                    Qsflucts.push_back(gauss2[i][iq]);
+                                 }
+                                
+                                Vec b_nucleon = Vec((xm - x), (ym - y),0); // distance from the center of the nucleon
+                                
+                                T += FluxTubeThickness(hotspots, Qsflucts, b_nucleon, param);
                         } else {
                             const double BG = param->getBG();
                             phi = nucleusB_.at(i).phi;
@@ -1321,6 +1294,107 @@ void Init::setColorChargeDensity(
         }
     }
 
+    if (param->getUseSmoothNucleus() == 0) {
+        stringstream strNcoll_name;
+        strNcoll_name << "NcollList" << param->getEventId() << ".dat";
+        string Ncoll_name;
+        Ncoll_name = strNcoll_name.str();
+
+        ofstream foutNcoll(Ncoll_name.c_str(), std::ios::out);
+
+        if (param->getGaussianWounding() == 0) {
+            for (int i = 0; i < A1; i++) {
+                for (int j = 0; j < A2; j++) {
+                    dx = nucleusB_.at(j).x - nucleusA_.at(i).x;
+                    dy = nucleusB_.at(j).y - nucleusA_.at(i).y;
+                    dij = dx * dx + dy * dy;
+                    if (dij < d2) {
+                        foutNcoll
+                            << (nucleusB_.at(j).x + nucleusA_.at(i).x) / 2.
+                            << " "
+                            << (nucleusB_.at(j).y + nucleusA_.at(i).y) / 2.
+                            << endl;
+                        Ncoll++;
+                        nucleusB_.at(j).collided = 1;
+                        nucleusA_.at(i).collided = 1;
+                    }
+                }
+            }
+        } else {
+            double p;
+            double G = 0.92;
+            double ran;
+
+            for (int i = 0; i < A1; i++) {
+                for (int j = 0; j < A2; j++) {
+                    dx = nucleusB_.at(j).x - nucleusA_.at(i).x;
+                    dy = nucleusB_.at(j).y - nucleusA_.at(i).y;
+                    dij = dx * dx + dy * dy;
+
+                    p = G * exp(-G * dij / d2);  // Gaussian profile
+
+                    ran = random->genrand64_real1();
+
+                    if (ran < p) {
+                        foutNcoll
+                            << (nucleusB_.at(j).x + nucleusA_.at(i).x) / 2.
+                            << " "
+                            << (nucleusB_.at(j).y + nucleusA_.at(i).y) / 2.
+                            << endl;
+                        Ncoll++;
+                        nucleusB_.at(j).collided = 1;
+                        nucleusA_.at(i).collided = 1;
+                    }
+                }
+            }
+        }
+
+        foutNcoll.close();
+
+        stringstream strNpart_name;
+        strNpart_name << "NpartList" << param->getEventId() << ".dat";
+        string Npart_name;
+        Npart_name = strNpart_name.str();
+
+        ofstream foutNpart(Npart_name.c_str(), std::ios::out);
+
+        for (int i = 0; i < A1; i++) {
+            foutNpart << nucleusA_.at(i).x << " " << nucleusA_.at(i).y << " "
+                      << nucleusA_.at(i).proton << " "
+                      << nucleusA_.at(i).collided << endl;
+        }
+        foutNpart << endl;
+        for (int i = 0; i < A2; i++) {
+            foutNpart << nucleusB_.at(i).x << " " << nucleusB_.at(i).y << " "
+                      << nucleusB_.at(i).proton << " "
+                      << nucleusB_.at(i).collided << endl;
+        }
+        foutNpart.close();
+
+        // in p+p assume that they collided in any case
+        if (A1 == 1 && A2 == 1) {
+            nucleusB_.at(0).collided = 1;
+            nucleusA_.at(0).collided = 1;
+        }
+
+        Npart = 0;
+
+        for (int i = 0; i < A1; i++) {
+            if (nucleusA_.at(i).collided == 1) Npart++;
+        }
+
+        for (int i = 0; i < A2; i++) {
+            if (nucleusB_.at(i).collided == 1) Npart++;
+        }
+
+        param->setNpart(Npart);
+
+        if (param->getUseFixedNpart() != 0
+            && Npart != param->getUseFixedNpart()) {
+            cout << "current Npart = " << Npart << endl;
+            return;
+        }
+    }
     // get Q_s^2 (and from that g^2mu^2) for a given \sum T_p and Y
 #pragma omp parallel
     {
@@ -1401,11 +1475,6 @@ void Init::setColorChargeDensity(
                         check = 2;
                     }
                 }
-
-                // If we are here initializing Wilson lines for the JIMWLK
-                // evolution (forcing effectively b=0), triggering has already
-                // been done
-                if (param->getwhich_stage() == 2) check = 2;
 
                 double exponent = 5.6;  // see 1212.2974 Eq. (17)
                 if (check == 2) {
@@ -1530,153 +1599,12 @@ void Init::setColorChargeDensity(
             }
         }
     }
-}
-void Init::computeCollisionGeometryQuantities(
-    Lattice *lat, Parameters *param, Random *random) {
-    // In the 2nd stage, we have already computed Ncoll, Npart, averageQs etc
-    // using the correct impact parameter
-    if (param->getwhich_stage() != 0)  // This should never be true
-    {
-        messager.error(
-            "computeCollisionGeometryQuantities should be only called before "
-            "shifting to b=0 case");
-        exit(1);
-    }
-
-    double dx, dy, dij;
-    double d2 = param->getSigmaNN() / (M_PI * 10.);  // in fm^2
-    double averageQs = 0.;
-    double averageQs2 = 0.;
-    double averageQs2Avg = 0.;
-    double averageQs2min = 0.;
-    double averageQs2min2 = 0.;
-    int count = 0;
-    int Npart = 0;
-    int Ncoll = 0;
-
-    const int A1 = nucleusA_.size();
-    const int A2 = nucleusB_.size();
-    const double L = param->getL();
-    const int N = param->getSize();
-    const double a = L / N;  // lattice spacing in fm
-    int pos, posA, posB;
-
-    // Determine Npart, Ncoll. Do this only during the first stage, as in the
-    // 2nd stage nuclei are shifted to b=0
-    if (param->getUseSmoothNucleus() == 0) {
-        stringstream strNcoll_name;
-        strNcoll_name << "NcollList" << param->getEventId() << ".dat";
-        string Ncoll_name;
-        Ncoll_name = strNcoll_name.str();
-
-        ofstream foutNcoll(Ncoll_name.c_str(), std::ios::out);
-
-        if (param->getGaussianWounding() == 0) {
-            for (int i = 0; i < A1; i++) {
-                for (int j = 0; j < A2; j++) {
-                    dx = nucleusB_.at(j).x - nucleusA_.at(i).x;
-                    dy = nucleusB_.at(j).y - nucleusA_.at(i).y;
-                    dij = dx * dx + dy * dy;
-                    if (dij < d2) {
-                        foutNcoll
-                            << (nucleusB_.at(j).x + nucleusA_.at(i).x) / 2.
-                            << " "
-                            << (nucleusB_.at(j).y + nucleusA_.at(i).y) / 2.
-                            << endl;
-                        Ncoll++;
-                        nucleusB_.at(j).collided = 1;
-                        nucleusA_.at(i).collided = 1;
-                    }
-                }
-            }
-        } else {
-            double p;
-            double G = 0.92;
-            double ran;
-
-            for (int i = 0; i < A1; i++) {
-                for (int j = 0; j < A2; j++) {
-                    dx = nucleusB_.at(j).x - nucleusA_.at(i).x;
-                    dy = nucleusB_.at(j).y - nucleusA_.at(i).y;
-                    dij = dx * dx + dy * dy;
-
-                    p = G * exp(-G * dij / d2);  // Gaussian profile
-
-                    ran = random->genrand64_real1();
-
-                    if (ran < p) {
-                        foutNcoll
-                            << (nucleusB_.at(j).x + nucleusA_.at(i).x) / 2.
-                            << " "
-                            << (nucleusB_.at(j).y + nucleusA_.at(i).y) / 2.
-                            << endl;
-                        Ncoll++;
-                        nucleusB_.at(j).collided = 1;
-                        nucleusA_.at(i).collided = 1;
-                    }
-                }
-            }
-        }
-
-        foutNcoll.close();
-
-        stringstream strNpart_name;
-        strNpart_name << "NpartList" << param->getEventId() << ".dat";
-        string Npart_name;
-        Npart_name = strNpart_name.str();
-
-        ofstream foutNpart(Npart_name.c_str(), std::ios::out);
-
-        for (int i = 0; i < A1; i++) {
-            foutNpart << nucleusA_.at(i).x << " " << nucleusA_.at(i).y << " "
-                      << nucleusA_.at(i).proton << " "
-                      << nucleusA_.at(i).collided << endl;
-        }
-        foutNpart << endl;
-        for (int i = 0; i < A2; i++) {
-            foutNpart << nucleusB_.at(i).x << " " << nucleusB_.at(i).y << " "
-                      << nucleusB_.at(i).proton << " "
-                      << nucleusB_.at(i).collided << endl;
-        }
-        foutNpart.close();
-
-        // in p+p assume that they collided in any case
-        if (A1 == 1 && A2 == 1) {
-            nucleusB_.at(0).collided = 1;
-            nucleusA_.at(0).collided = 1;
-        }
-
-        Npart = 0;
-
-        for (int i = 0; i < A1; i++) {
-            if (nucleusA_.at(i).collided == 1) Npart++;
-        }
-
-        for (int i = 0; i < A2; i++) {
-            if (nucleusB_.at(i).collided == 1) Npart++;
-        }
-
-        param->setNpart(Npart);
-
-        if (param->getUseFixedNpart() != 0
-            && Npart != param->getUseFixedNpart()) {
-            cout << "current Npart = " << Npart << endl;
-            return;
-        }
-    }  // end of useSmoothNucleus==0
-    else  // Smooth nucleus
-    {
-        Npart = 2;
-        Ncoll = 2;
-        param->setNpart(Npart);
-    }
 
     count = 0;
     double Tpp = 0.;
     double x, xm, y, ym;
     double alphas = 0.;
     int check = 0;
-    double g2mu2A, g2mu2B;
     for (int ix = 0; ix < N; ix++)  // loop over all positions
     {
         for (int iy = 0; iy < N; iy++) {
@@ -1712,7 +1640,7 @@ void Init::computeCollisionGeometryQuantities(
             for (int i = 0; i < A1; i++) {
                 xm = nucleusA_.at(i).x;
                 ym = nucleusA_.at(i).y;
-                double r = sqrt((x - xm) * (x - xm) + (y - ym) * (y - ym));
+                r = sqrt((x - xm) * (x - xm) + (y - ym) * (y - ym));
 
                 if (r < sqrt(0.1 * param->getSigmaNN() / M_PI)
                     && nucleusA_.at(i).collided == 1) {
@@ -1723,7 +1651,7 @@ void Init::computeCollisionGeometryQuantities(
             for (int i = 0; i < A2; i++) {
                 xm = nucleusB_.at(i).x;
                 ym = nucleusB_.at(i).y;
-                double r = sqrt((x - xm) * (x - xm) + (y - ym) * (y - ym));
+                r = sqrt((x - xm) * (x - xm) + (y - ym) * (y - ym));
 
                 if (r < sqrt(0.1 * param->getSigmaNN() / M_PI)
                     && nucleusB_.at(i).collided == 1 && check == 1)
@@ -1868,8 +1796,6 @@ void Init::computeCollisionGeometryQuantities(
         && alphas > 0 && Npart >= 2
         && averageQs2min2 * a * a / hbarc / hbarc > param->getMinimumQs2ST()) {
         param->setSuccess(1);
-
-        param->set_firstb(param->getb());
         stringstream strup_name;
         strup_name << "usedParameters" << param->getEventId() << ".dat";
         string up_name;
@@ -1879,8 +1805,8 @@ void Init::computeCollisionGeometryQuantities(
         fout1 << " " << endl;
         fout1 << " Output by setColorChargeDensity in Init.cpp: " << endl;
         fout1 << " " << endl;
-        fout1 << "b = " << param->getb() << " fm" << endl;
-        // fout1 << "phiRP = " << phiRP << endl;
+        fout1 << "b = " << impact_b << " fm" << endl;
+        fout1 << "phiRP = " << phiRP << endl;
         fout1 << "Npart = " << Npart << endl;
         fout1 << "Ncoll = " << Ncoll << endl;
         if (param->getRunningCoupling()) {
@@ -1931,10 +1857,6 @@ void Init::computeCollisionGeometryQuantities(
 
 void Init::setV(Lattice *lat, Parameters *param, Random *random) {
     messager.info("Setting Wilson lines ...");
-    const int A1 = nucleusA_.size();
-    const int A2 = nucleusB_.size();
-
-    const double d2 = param->getSigmaNN() / (M_PI * 10.);  // in fm^2
     const int N = param->getSize();
     const int Ny = param->getNy();
     const int nn[2] = {N, N};
@@ -1942,8 +1864,6 @@ void Init::setV(Lattice *lat, Parameters *param, Random *random) {
     const double a = L / N;  // lattice spacing in fm
     const double m = param->getm() * a / hbarc;
     double UVdamp = param->getUVdamp();  // GeV^-1
-    int Ncoll = 0;
-    int Npart = 0;
     UVdamp = UVdamp / a * hbarc;
     complex<double> **rhoACoeff;
     rhoACoeff = new complex<double> *[Nc2m1_];
@@ -2006,61 +1926,7 @@ void Init::setV(Lattice *lat, Parameters *param, Random *random) {
             fft.fftnComplex(rhoACoeff[n], rhoACoeff[n], nn, -1);
         }
         // compute U
-        stringstream Ncoll_name;
-        Ncoll_name << "NcollList" << param->getEventId() << ".dat";
-        ofstream foutNcoll(Ncoll_name.str().c_str(), std::ios::out);
 
-        if (param->getGaussianWounding() == 0) {
-            for (int i = 0; i < A1; i++) {
-                for (int j = 0; j < A2; j++) {
-                    double dx = nucleusB_.at(j).x - nucleusA_.at(i).x;
-                    double dy = nucleusB_.at(j).y - nucleusA_.at(i).y;
-                    double dij = dx * dx + dy * dy;
-                    if (dij < d2) {
-                        foutNcoll
-                            << (nucleusB_.at(j).x + nucleusA_.at(i).x) / 2.
-                            << " "
-                            << (nucleusB_.at(j).y + nucleusA_.at(i).y) / 2.
-                            << endl;
-                        Ncoll++;
-                        nucleusB_.at(j).collided = 1;
-                        nucleusA_.at(i).collided = 1;
-                    }
-                }
-            }
-        } else {
-            double p;
-            double G = 0.92;
-            double ran;
-
-            for (int i = 0; i < A1; i++) {
-                for (int j = 0; j < A2; j++) {
-                    double dx = nucleusB_.at(j).x - nucleusA_.at(i).x;
-                    double dy = nucleusB_.at(j).y - nucleusA_.at(i).y;
-                    double dij = dx * dx + dy * dy;
-
-                    p = G * exp(-G * dij / d2);  // Gaussian profile
-
-                    ran = random->genrand64_real1();
-
-                    if (ran < p) {
-                        foutNcoll
-                            << (nucleusB_.at(j).x + nucleusA_.at(i).x) / 2.
-                            << " "
-                            << (nucleusB_.at(j).y + nucleusA_.at(i).y) / 2.
-                            << endl;
-                        Ncoll++;
-                        nucleusB_.at(j).collided = 1;
-                        nucleusA_.at(i).collided = 1;
-                    }
-                }
-            }
-        }
-
-        foutNcoll.close();
-
-
-        // get Q_s^2 (and from that g^2mu^2) for a given \sum T_p and Y
 #pragma omp parallel
         {
             std::vector<double> in(Nc2m1_, 0.);
@@ -2145,7 +2011,7 @@ void Init::setV(Lattice *lat, Parameters *param, Random *random) {
             Matrix temp(Nc_, 1.);
             Matrix tempNew(Nc_, 0.);
 
-#pragma omp parallel for
+#pragma omp for
             for (int pos = 0; pos < N * N; pos++) {
                 for (int aa = 0; aa < Nc2m1_; aa++) {
                     // expmCoeff will calculate exp(i in[a]t[a]), so
@@ -2168,279 +2034,138 @@ void Init::setV(Lattice *lat, Parameters *param, Random *random) {
     }
     delete[] rhoACoeff;
 
-
-
-    // output U
+    // // output U
     if (param->getWriteInitialWilsonLines() > 0) {
-        WriteInitialWilsonLines("", lat, param);
-    }
+        if (std::abs(param->getb()) > 1e-5)
+            messager.warning(
+                "Writing Wilson lines with a non-zero impact parameter b!");
 
-    messager << " Wilson lines V_A and V_B set on rank " << param->getMPIRank()
-             << ". ";
-    messager.flush("info");
-}
+        stringstream strVOne_name;
+        // strVOne_name << "V1-" << param->getMPIRank() << ".txt";
+        strVOne_name << "V-"
+                     << param->getEventId()
+                            + 2 * param->getSeed() * param->getMPISize();
+        if (param->getWriteInitialWilsonLines() == 1) strVOne_name << ".txt";
+        string VOne_name;
+        VOne_name = strVOne_name.str();
 
-void Init::WriteInitialWilsonLines(std::string fileprefix, Lattice *lat, Parameters *param)
-{
-    const int N = param->getSize();
-    const int Ny = param->getNy();
-    const int nn[2] = {N, N};
-    const double L = param->getL();
-    const double a = L / N;  // lattice spacing in fm
+        stringstream strVTwo_name;
+        // strVTwo_name << "V2-" << param->getMPIRank() << ".txt";
+        strVTwo_name << "V-"
+                     << param->getEventId()
+                            + (1 + 2 * param->getSeed()) * param->getMPISize();
+        if (param->getWriteInitialWilsonLines() == 1) strVTwo_name << ".txt";
+        string VTwo_name;
+        VTwo_name = strVTwo_name.str();
+        // Output in text
+        if (param->getWriteInitialWilsonLines() == 1) {
+            ofstream foutU(VOne_name.c_str(), std::ios::out);
+            foutU.precision(15);
 
-    stringstream strVOne_name;
-    // strVOne_name << "V1-" << param->getMPIRank() << ".txt";
-    strVOne_name << fileprefix << "V-"
-                 << param->getEventId()
-                        + 2 * param->getSeed() * param->getMPISize();
-    if (param->getWriteInitialWilsonLines() == 1) strVOne_name << ".txt";
-    string VOne_name;
-    VOne_name = strVOne_name.str();
-
-    stringstream strVTwo_name;
-    // strVTwo_name << "V2-" << param->getMPIRank() << ".txt";
-    strVTwo_name << fileprefix << "V-"
-                 << param->getEventId()
-                        + (1 + 2 * param->getSeed()) * param->getMPISize();
-    if (param->getWriteInitialWilsonLines() == 1) strVTwo_name << ".txt";
-    string VTwo_name;
-    VTwo_name = strVTwo_name.str();
-    // Output in text
-    if (param->getWriteInitialWilsonLines() == 1) {
-        ofstream foutU(VOne_name.c_str(), std::ios::out);
-        foutU.precision(15);
-
-        for (int ix = 0; ix < N; ix++) {
-            for (int iy = 0; iy < N; iy++)  // loop over all positions
-            {
-                int pos = ix * N + iy;
-                foutU << ix << " " << iy << " "
-                      << (lat->cells[pos]->getU()).MatrixToString() << endl;
+            for (int ix = 0; ix < N; ix++) {
+                for (int iy = 0; iy < N; iy++)  // loop over all positions
+                {
+                    int pos = ix * N + iy;
+                    foutU << ix << " " << iy << " "
+                          << (lat->cells[pos]->getU()).MatrixToString() << endl;
+                }
+                foutU << endl;
             }
-            foutU << endl;
-        }
-        foutU.close();
+            foutU.close();
 
-        cout << "wrote " << strVOne_name.str() << endl;
+            cout << "wrote " << strVOne_name.str() << endl;
 
-        ofstream foutU2(VTwo_name.c_str(), std::ios::out);
-        foutU2.precision(15);
-        for (int ix = 0; ix < N; ix++) {
-            for (int iy = 0; iy < N; iy++)  // loop over all positions
-            {
-                int pos = ix * N + iy;
-                foutU2 << ix << " " << iy << " "
-                       << (lat->cells[pos]->getU2()).MatrixToString()
-                       << endl;
+            ofstream foutU2(VTwo_name.c_str(), std::ios::out);
+            foutU2.precision(15);
+            for (int ix = 0; ix < N; ix++) {
+                for (int iy = 0; iy < N; iy++)  // loop over all positions
+                {
+                    int pos = ix * N + iy;
+                    foutU2 << ix << " " << iy << " "
+                           << (lat->cells[pos]->getU2()).MatrixToString()
+                           << endl;
+                }
+                foutU2 << endl;
             }
-            foutU2 << endl;
-        }
-        foutU2.close();
+            foutU2.close();
 
-        cout << "wrote " << strVTwo_name.str() << endl;
-    }  // end output in text
-    else if (param->getWriteInitialWilsonLines() == 2) {
-        std::ofstream Outfile1, Outfile2;
-        Outfile1.open(VOne_name.c_str(), std::ios::out | std::ios::binary);
-        Outfile2.open(VTwo_name.c_str(), std::ios::out | std::ios::binary);
+            cout << "wrote " << strVTwo_name.str() << endl;
+        }  // end output in text
+        else if (param->getWriteInitialWilsonLines() == 2) {
+            std::ofstream Outfile1, Outfile2;
+            Outfile1.open(VOne_name.c_str(), std::ios::out | std::ios::binary);
+            Outfile2.open(VTwo_name.c_str(), std::ios::out | std::ios::binary);
 
-        double temp = param->getRapidity();
+            double temp = param->getRapidity();
 
-        // print header ------------- //
-        Outfile1.write((char *)&N, sizeof(int));
-        Outfile1.write((char *)&Nc_, sizeof(int));
-        Outfile1.write((char *)&L, sizeof(double));
-        Outfile1.write((char *)&a, sizeof(double));
-        Outfile1.write((char *)&temp, sizeof(double));
+            // print header ------------- //
+            Outfile1.write((char *)&N, sizeof(int));
+            Outfile1.write((char *)&Nc_, sizeof(int));
+            Outfile1.write((char *)&L, sizeof(double));
+            Outfile1.write((char *)&a, sizeof(double));
+            Outfile1.write((char *)&temp, sizeof(double));
 
-        Outfile2.write((char *)&N, sizeof(int));
-        Outfile2.write((char *)&Nc_, sizeof(int));
-        Outfile2.write((char *)&L, sizeof(double));
-        Outfile2.write((char *)&a, sizeof(double));
-        Outfile2.write((char *)&temp, sizeof(double));
-        //
+            Outfile2.write((char *)&N, sizeof(int));
+            Outfile2.write((char *)&Nc_, sizeof(int));
+            Outfile2.write((char *)&L, sizeof(double));
+            Outfile2.write((char *)&a, sizeof(double));
+            Outfile2.write((char *)&temp, sizeof(double));
+            //
 
-        double *val1 = new double[2];
-        double *val2 = new double[2];
+            double *val1 = new double[2];
+            double *val2 = new double[2];
 
-        for (int ix = 0; ix < N; ix++) {
-            for (int iy = 0; iy < N; iy++) {
-                for (int a1 = 0; a1 < 3; a1++) {
-                    for (int b = 0; b < 3; b++) {
-                        int indx = N * iy + ix;
-                        val1[0] =
-                            (lat->cells[indx]->getU()).getRe(a1 * Nc_ + b);
-                        val1[1] =
-                            (lat->cells[indx]->getU()).getIm(a1 * Nc_ + b);
-                        val2[0] =
-                            (lat->cells[indx]->getU2()).getRe(a1 * Nc_ + b);
-                        val2[1] =
-                            (lat->cells[indx]->getU2()).getIm(a1 * Nc_ + b);
+            for (int ix = 0; ix < N; ix++) {
+                for (int iy = 0; iy < N; iy++) {
+                    for (int a1 = 0; a1 < 3; a1++) {
+                        for (int b = 0; b < 3; b++) {
+                            int indx = N * iy + ix;
+                            val1[0] =
+                                (lat->cells[indx]->getU()).getRe(a1 * Nc_ + b);
+                            val1[1] =
+                                (lat->cells[indx]->getU()).getIm(a1 * Nc_ + b);
+                            val2[0] =
+                                (lat->cells[indx]->getU2()).getRe(a1 * Nc_ + b);
+                            val2[1] =
+                                (lat->cells[indx]->getU2()).getIm(a1 * Nc_ + b);
 
-                        Outfile1.write((char *)val1, 2 * sizeof(double));
-                        Outfile2.write((char *)val2, 2 * sizeof(double));
+                            Outfile1.write((char *)val1, 2 * sizeof(double));
+                            Outfile2.write((char *)val2, 2 * sizeof(double));
+                        }
                     }
                 }
             }
-        }
 
-        if (Outfile1.good() == false || Outfile2.good() == false) {
-            std::cerr << "#CRTICAL ERROR -- BINARY OUTPUT OF VECTOR "
-                         "CURRENTS FAILED"
-                      << std::endl;
+            if (Outfile1.good() == false || Outfile2.good() == false) {
+                std::cerr << "#CRTICAL ERROR -- BINARY OUTPUT OF VECTOR "
+                             "CURRENTS FAILED"
+                          << std::endl;
+                exit(1);
+            }
+
+            delete[] val1;
+            delete[] val2;
+
+            Outfile1.close();
+            Outfile2.close();
+            cout << "wrote " << strVOne_name.str() << " and "
+                 << strVTwo_name.str() << endl;
+        }  // end binary output
+        else {
+            std::cerr
+                << "# Unknwon option param->getWriteInitialWilsonLines()=="
+                << param->getWriteInitialWilsonLines() << std::endl;
             exit(1);
         }
-
-        delete[] val1;
-        delete[] val2;
-
-        Outfile1.close();
-        Outfile2.close();
-        cout << "wrote " << strVOne_name.str() << " and "
-             << strVTwo_name.str() << endl;
-    }  // end binary output
-    else {
-        std::cerr
-            << "# Unknwon option param->getWriteInitialWilsonLines()=="
-                  << param->getWriteInitialWilsonLines() << std::endl;
-        exit(1);
     }
+    // --------
 
     messager << " Wilson lines V_A and V_B set on rank " << param->getMPIRank()
              << ". ";
     messager.flush("info");
 }
 
-void Init::readV2(Lattice *lat, Parameters *param,  Glauber *glauber) {
-    // "Read" Wilson lines from the Lattice object, shift those according to the impact parameter
-    int AA1, AA2;
-    // int check=0;
-    if (param->getNucleonPositionsFromFile() == 0) {
-        AA1 = static_cast<int>(glauber->nucleusA1()) * param->getAverageOverNuclei();
-        AA2 = static_cast<int>(glauber->nucleusA2()) * param->getAverageOverNuclei();
-    } else {
-        AA1 = param->getA1FromFile();
-        AA2 = param->getA2FromFile();
-    }
-
-    const Matrix one(Nc_, 1.);
-    int N = param->getSize();
-
-    double L = param->getL();
-    double a = L / static_cast<double>(N);
-
-    int nn[2];
-    nn[0] = N;
-    nn[1] = N;
-
-    Matrix temp(Nc_, 1.);
-
-    double Re[9], Im[9];
-    double dummy;
-    double bb = param->get_firstb();
-    int added_lines = param->get_added_lines();
-
-    int added_lines_d2 = added_lines/2;
-    int added_lines_d2_f = 0;
-    int N_m_added_lines_d2 = N - added_lines/2;
-    int N_m_added_lines = N;// - added_lines;
-
-    Lattice Lat_old(param, param->getNc(), param->getSize());
-
-    for (int i = 0; i < nn[0]; i++) {
-        for (int j = 0; j < nn[1]; j++) {
-            int pos = i * N + j;
-            Lat_old.cells[pos]->setU(lat->cells[pos]->getU());
-            Lat_old.cells[pos]->setU2(lat->cells[pos]->getU2());
-
-            lat->cells[pos]->setU(one_);
-            lat->cells[pos]->setU2(one_);
-        }
-    }
-
-    for (int i = 0; i < N_m_added_lines; i++) {
-        for (int j = 0; j < N_m_added_lines; j++) {
-            
-            int pos_old = i * N_m_added_lines + j;
-            // U1
-            double xtemp = a * i - bb / 2.;
-            if (AA1 < 4 && AA2 > 1) {
-                xtemp = a * i;
-            } else if (AA2 < 4 && AA1 > 1) {
-                xtemp = a * i - bb;
-            }
-            int ix = xtemp / a;
-            if (ix >= added_lines_d2) {
-                int pos = (ix + added_lines_d2_f ) * N + (j + added_lines_d2_f);
-                temp = Lat_old.cells[pos_old]->getU();
-                lat->cells[pos]->setU(temp);
-            }
-
-            // U2
-            double xtemp2 = a * i + bb / 2.;
-            if (AA1 < 4 && AA2 > 1) {
-                xtemp2 = a * i + bb;
-            } else if (AA2 < 4 && AA1 > 1) {
-                xtemp2 = a * i;
-            }
-            int ix2 = xtemp2 / a;
-            if (ix2 <= N_m_added_lines_d2) {
-                int pos2 = (ix2 + added_lines_d2_f ) * N + (j + added_lines_d2_f);
-                temp = Lat_old.cells[pos_old]->getU2();
-                lat->cells[pos2]->setU2(temp);
-            }
-        }
-    }
-
-    /*
-   // test output_filename
-   stringstream strVOne_names;
-     strVOne_names << "V_second_1.txt";
-     string VOne_names;
-     VOne_names = strVOne_names.str();
-
-     stringstream strVTwo_names;
-     strVTwo_names << "V_second_2.txt";
-     string VTwo_names;
-     VTwo_names = strVTwo_names.str();
-
-       ofstream foutU(VOne_names.c_str(), std::ios::out);
-       foutU.precision(15);
-
-       for (int ix = 0; ix < N; ix++) {
-         for (int iy = 0; iy < N; iy++) // loop over all positions
-         {
-           int pos = ix * N + iy;
-           foutU << ix << " " << iy << " "
-                 << (lat->cells[pos]->getU()).MatrixToString() << endl;
-         }
-         foutU << endl;
-       }
-       foutU.close();
-
-       cout << "wrote " << strVOne_names.str() << endl;
-
-       ofstream foutU2(VTwo_names.c_str(), std::ios::out);
-       foutU2.precision(15);
-       for (int ix = 0; ix < N; ix++) {
-         for (int iy = 0; iy < N; iy++) // loop over all positions
-         {
-           int pos = ix * N + iy;
-           foutU2 << ix << " " << iy << " "
-                  << (lat->cells[pos]->getU2()).MatrixToString() << endl;
-         }
-         foutU2 << endl;
-       }
-       foutU2.close();
-       cout << "wrote " << strVTwo_names.str() << endl;
-     */
-
-    messager << " Wilson lines V_A and V_B set on rank " << param->getMPIRank()
-             << ". ";
-    messager.flush("info");
-}
-
-void Init::readVFromFile(Lattice *lat, Parameters *param, int format) {
+void Init::readV(Lattice *lat, Parameters *param, int format) {
     // format 1 = plain text, 2 = binary
 
     if (format > 2 or format < 1) {
@@ -2755,11 +2480,9 @@ void Init::readVFromFile(Lattice *lat, Parameters *param, int format) {
     messager.flush("info");
 }
 
-
-
 void Init::init(
     Lattice *lat, Group *group, Parameters *param, Random *random,
-    Glauber *glauber, Initialization_method init_method) {
+    Glauber *glauber, int READFROMFILE) {
     const int maxIterations = 100000;
     const int N = param->getSize();
     Nc_ = param->getNc();
@@ -2785,33 +2508,26 @@ void Init::init(
         messager << "Setting b=0 for constant color charge density case.";
         messager.flush("info");
     } else {
-        if (init_method == INITIALIZE_AFTER_JIMWLK) {
-            // Use a previously sampled b used in triggering if we are
-            // initializing after JIMWLK evolution
-            param->setb(param->get_firstb());
-            b = param->get_firstb();
+        if (param->getLinearb() == 1) {
+            // use a linear probability distribution for b if we are doing
+            // nuclei
+            messager << "Sampling linearly distributed b between " << bmin
+                     << " and " << bmax << "fm. Found ";
+            b = sqrt((bmax * bmax - bmin * bmin) * xb + bmin * bmin);
         } else {
-            if (param->getLinearb() == 1) {
-                // use a linear probability distribution for b if we are doing
-                // nuclei
-                messager << "Sampling linearly distributed b between " << bmin
-                         << " and " << bmax << "fm. Found ";
-                b = sqrt((bmax * bmax - bmin * bmin) * xb + bmin * bmin);
-            } else {
-                // use a uniform distribution instead
-                messager << "Sampling uniformly distributed b between " << bmin
-                         << " and " << bmax << "fm. Found ";
-                b = (bmax - bmin) * xb + bmin;
-            }
+            // use a uniform distribution instead
+            messager << "Sampling uniformly distributed b between " << bmin
+                     << " and " << bmax << "fm. Found ";
+            b = (bmax - bmin) * xb + bmin;
         }
-        param->setb(b);
     }
+
+    param->setb(b);
     messager << "b=" << b << " fm.";
     messager.flush("info");
 
     // read Q_s^2 from file
-    if (param->getUseNucleus() == 1
-        and init_method != INITIALIZE_AFTER_JIMWLK) {
+    if (param->getUseNucleus() == 1) {
         readNuclearQs(param);
     }
 
@@ -2822,28 +2538,25 @@ void Init::init(
         static_cast<int>(glauber->nucleusA2()), param->getlightNucleusOption(),
         nucleonPosArrB_);
 
+    // sample nucleon positions
+    nucleusA_.clear();
+    nucleusB_.clear();
+
     // to read Wilson lines from file (e.g. after JIMWLK evolution for the
     // 3DGlasma)
-    if (init_method == READ_WLINE_BINARY or init_method == READ_WLINE_TEXT) {
-        readVFromFile(lat, param, (init_method == READ_WLINE_BINARY) ? 2 : 1);
+    if (READFROMFILE > 0) {
+        readV(lat, param, READFROMFILE);
         param->setSuccess(1);
-    } else if (init_method == INITIALIZE_AFTER_JIMWLK)  // Initialize with
-                                                        // JIWMLK evolved Wilson
-                                                        // lines
-    {
-        readV2(lat, param, glauber);
-        param->setSuccess(1);
-    } else {  // init_method == SAMPLE_COLOR_CHARGES
+    } else {
         // to generate your own Wilson lines
         if (param->getUseNucleus() == 1) {
-            nucleusA_.clear();
-            nucleusB_.clear();
             sampleTA(
                 param, random, glauber);  // populate the lists nucleusA_ and
                                           // nucleusB_ with position data of the
         }
 
-        param->setwhich_stage(0);  // The first step of the first stage
+        // set color charge densities
+        setColorChargeDensity(lat, param, random, glauber);
 
         // for enforcing a specific Npart:
         if (param->getUseNucleus() == 1 && param->getUseFixedNpart() != 0) {
@@ -2878,39 +2591,29 @@ void Init::init(
                     // populate the lists nucleusA_ and nucleusB_ with position
                     // data
                     sampleTA(param, random, glauber);
-                    setColorChargeDensity(
-                        lat, param, random, glauber);  // computes also Npart
+
+                    setColorChargeDensity(lat, param, random, glauber);
                 }
             }
             cout << "Using fixed Npart=" << param->getNpart() << endl;
-        } else
-            setColorChargeDensity(lat, param, random, glauber);
-
-        // Compute Npart, Ncoll,etc, and check if there was a collision
-        computeCollisionGeometryQuantities(lat, param, random);
+        }
 
         if (param->getSuccess() == 0) {
             cout << "No collision happened on rank " << param->getMPIRank()
                  << ". Restarting with new random number..." << endl;
             return;
-        }        
-
-        // Shift nuclei back to b=0 before computing Wilson lines for JIMWLK
-        // evolution, shifting back to correct b after JIMWLK
-        param->setwhich_stage(2);
-        setColorChargeDensity(lat, param, random, glauber);
-
+        }
         // sample color charges and find Wilson lines V_A and V_B
         setV(lat, param, random);
     }
 
-    if (init_method == INITIALIZE_AFTER_JIMWLK) {  // Start CYM evolution on the
-                                                   // second round after JIMWLK
-        messager.info("Finding fields in forward lightcone...");
-        // output Wilson lines (used also for the proton plots)
-        double L = param->getL();
-        double a = L / N;  // lattice spacing in fm
-        double x, y;
+    // output Wilson lines (used also for the proton plots)
+    double L = param->getL();
+    double a = L / N;  // lattice spacing in fm
+    double x, y;
+
+    messager.info("Finding fields in forward lightcone...");
+
 #pragma omp parallel
     {
         Matrix temp2(Nc_, 0.);
@@ -3165,8 +2868,8 @@ void Init::init(
             // reset the Ux1 to be used for other purposes later
             lat->cells[pos]->setUx1(one_);
         }
-    } // omp block
-    } // end INITIALIZE_AFTER_JIMWLK 
+    }
+
     // -----------------------------------------------------------------------------
     // finish
     // -----------------------------------------------------------------------------
@@ -3601,7 +3304,7 @@ void Init::recenter_nucleus(std::vector<ReturnValue> &nucleus) {
 
 void Init::assignProtons(std::vector<ReturnValue> &nucleus, const int Z) {
     // randomly assign Z nucleons to be protons inside the nucleus
-    std::shuffle(nucleus.begin(), nucleus.end(), *random_ptr_->getRanGen());
+    std::random_shuffle(nucleus.begin(), nucleus.end());
     for (unsigned int i = 0; i < nucleus.size(); i++) {
         if (static_cast<int>(i) < std::abs(Z)) {
             nucleus.at(i).proton = 1;
