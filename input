@@ -56,12 +56,12 @@ runWithLocalQs 0
 runWithkt 0
 Ny 50
 useSeedList 0
-seed 1
-useTimeForSeed 1
+seed 4977839
+useTimeForSeed 0
 Projectile p
 Target Pb
 bmin 0
-bmax 0
+bmax 15
 computeGluonMultiplicity 0
 rotateReactionPlane 0
 lightNucleusOption 5

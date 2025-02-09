@@ -179,7 +179,9 @@ Vec GeometricMedian(std::vector<Vec> &points)
             cout << points[k] << endl;
         cerr << "Best estimate: " << endl;
         cerr << y << endl;
-        exit(1);
+        Vec ytemp(10000.,10000.,10000.); 
+        return ytemp;
+        //exit(1);
     }
     
     return y;

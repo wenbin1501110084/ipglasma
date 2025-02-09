@@ -776,6 +776,9 @@ double Init::FluxTubeThickness(std::vector<Vec> hotspots, std::vector<double> Qs
     par.init = this;
 
     par.fermatpoint = GeometricMedian(hotspots);
+    if (par.fermatpoint.Len() > 10000.) {
+        return 110000.0;
+    }
     par.param = param;
     par.quarks = hotspots;
     par.Qsflucts=Qsflucts;
@@ -1162,12 +1165,18 @@ void Init::setColorChargeDensity(
             double y, ym;
             int localpos;
             double bp2, T, phi;
+            int GeometricMedian_is_OK = 1;
+            bool stopAll = false;
 
 #pragma omp for
             for (int ix = 0; ix < N; ix++)  // loop over all positions
             {
+                if (stopAll) continue;
+                if (GeometricMedian_is_OK == 0) stopAll = true;
                 x = -L / 2. + a * ix;
                 for (int iy = 0; iy < N; iy++) {
+                    if (stopAll) continue;
+                    if (GeometricMedian_is_OK == 0) stopAll = true;
                     y = -L / 2. + a * iy;
 
                     localpos = ix * N + iy;
@@ -1175,6 +1184,8 @@ void Init::setColorChargeDensity(
                     // nucleus A
                     lat->cells[localpos]->setTpA(0.);
                     for (int i = 0; i < A1; i++) {
+                        if (stopAll) continue;
+                        if (GeometricMedian_is_OK == 0) stopAll = true;
                         xm = nucleusA_.at(i).x;
                         ym = nucleusA_.at(i).y;
 
@@ -1210,6 +1221,9 @@ void Init::setColorChargeDensity(
                                 Vec b_nucleon = Vec((xm - x), (ym - y),0); // distance from the center of the nucleon
                                 
                                 T += FluxTubeThickness(hotspots, Qsflucts, b_nucleon, param);
+                                if (T > 100000. ) {
+                                    GeometricMedian_is_OK = 0;
+                                }
                                 
                         } else {
                             const double BG = param->getBG();
@@ -1235,6 +1249,8 @@ void Init::setColorChargeDensity(
                     // nucleus B
                     lat->cells[localpos]->setTpB(0.);
                     for (int i = 0; i < A2; i++) {
+                        if (stopAll) continue;
+                        if (GeometricMedian_is_OK == 0) stopAll = true;
                         xm = nucleusB_.at(i).x;
                         ym = nucleusB_.at(i).y;
 
@@ -1267,6 +1283,9 @@ void Init::setColorChargeDensity(
                                 Vec b_nucleon = Vec((xm - x), (ym - y),0); // distance from the center of the nucleon
                                 
                                 T += FluxTubeThickness(hotspots, Qsflucts, b_nucleon, param);
+                                if (T > 100000. ) {
+                                    GeometricMedian_is_OK = 0;
+                                }
                         } else {
                             const double BG = param->getBG();
                             phi = nucleusB_.at(i).phi;
@@ -1288,6 +1307,15 @@ void Init::setColorChargeDensity(
                         lat->cells[localpos]->setTpB(
                             lat->cells[localpos]->getTpB()
                             + T / nucleiInAverage);  // add up all T_p
+                    }
+                }
+            }
+            if (GeometricMedian_is_OK == 0) {
+                for (int ix = 0; ix < N; ix++) { // loop over all positions
+                    for (int iy = 0; iy < N; iy++) {
+                        localpos = ix * N + iy;
+                        lat->cells[localpos]->setTpA(0.);
+                        lat->cells[localpos]->setTpB(0.0); 
                     }
                 }
             }
