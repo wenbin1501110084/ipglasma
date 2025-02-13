@@ -2366,8 +2366,18 @@ void Init::init(
     }
 }
 
-void Init::shiftFieldsWithImpactParameter(Lattice *lat, Parameters *param) {
+void Init::shiftFieldsWithImpactParameter(Lattice *lat, Glauber *glauber, Parameters *param) {
     messager.info("Shifting fields with impact parameter...");
+    int AA1, AA2;
+    // int check=0;
+    if (param->getNucleonPositionsFromFile() == 0) {
+        AA1 = static_cast<int>(glauber->nucleusA1()) * param->getAverageOverNuclei();
+        AA2 = static_cast<int>(glauber->nucleusA2()) * param->getAverageOverNuclei();
+    } else {
+        AA1 = param->getA1FromFile();
+        AA2 = param->getA2FromFile();
+    }
+    
     const double b = param->getb();
     const double phiRP = param->getPhiRP();
     messager << "b = " << b << " fm, phi_RP = " << phiRP;
@@ -2382,16 +2392,27 @@ void Init::shiftFieldsWithImpactParameter(Lattice *lat, Parameters *param) {
 
     const double L = param->getL();
     const double a = L / N;  // lattice spacing in fm
+    int added_lines_d2 = 4;
+    int N_m_added_lines_d2 = N - added_lines_d2;
+    double bA = b;
+    double bB = b;
     for (int ipos = 0; ipos < N * N; ipos++) {
         int ix = ipos / N;
         int iy = ipos % N;
         double x = -L / 2. + a * ix;
         double y = -L / 2. + a * iy;
-
-        double xA = x - b / 2. * cos(phiRP);
-        double yA = y - b / 2. * sin(phiRP);
-        double xB = x + b / 2. * cos(phiRP);
-        double yB = y + b / 2. * sin(phiRP);
+        if (AA1 < 4 && AA2 > 4) {
+            bA = 0; 
+            bB = 2.*b;
+        } else if (AA2 < 4 && AA1 > 4) {
+            bB = 0; 
+            bA = 2.*b;
+        }
+        
+        double xA = x - bA / 2. * cos(phiRP);
+        double yA = y - bA / 2. * sin(phiRP);
+        double xB = x + bB / 2. * cos(phiRP);
+        double yB = y + bB / 2. * sin(phiRP);
 
         int ixA = static_cast<int>((xA + L / 2.) / a);
         int iyA = static_cast<int>((yA + L / 2.) / a);
@@ -2399,14 +2420,25 @@ void Init::shiftFieldsWithImpactParameter(Lattice *lat, Parameters *param) {
         int iyB = static_cast<int>((yB + L / 2.) / a);
 
         int posA = ixA * N + iyA;
-        if (posA >= 0 && posA < N * N) {
-            lat->cells[ipos]->setU(lat_tmp.cells[posA]->getbuffer1());
+        
+        if (ixA  < N_m_added_lines_d2 ) {
+            if (posA >= 0 && posA < N * N) {
+                lat->cells[ipos]->setU(lat_tmp.cells[posA]->getbuffer1());
+            } else {
+                lat->cells[ipos]->setU(one_);
+            }
         } else {
             lat->cells[ipos]->setU(one_);
         }
+        
         int posB = ixB * N + iyB;
-        if (posB >= 0 && posB < N * N) {
-            lat->cells[ipos]->setU2(lat_tmp.cells[posB]->getbuffer2());
+        
+        if (ixB  > added_lines_d2  ) {
+            if (posB >= 0 && posB < N * N) {
+                lat->cells[ipos]->setU2(lat_tmp.cells[posB]->getbuffer2());
+            } else {
+                lat->cells[ipos]->setU2(one_);
+            }
         } else {
             lat->cells[ipos]->setU2(one_);
         }

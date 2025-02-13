@@ -378,7 +378,7 @@ int main(int argc, char *argv[]) {
                 init.sampleImpactParameter(param);
                 init.computeCollisionGeometryQuantities(&lat, param);
             }
-            init.shiftFieldsWithImpactParameter(&lat, param);
+            init.shiftFieldsWithImpactParameter(&lat, &glauber,  param);
             init.initializeForwardLightCone(&lat, param);
             messager.info("Start CYM evolution");
             // do the CYM evolution of the initialized fields using parmeters in
