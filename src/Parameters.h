@@ -233,7 +233,9 @@ class Parameters {
 
     double jimwlk_x1;  // Bjorken x for the nucleus A (projectile)
     double jimwlk_x2;  // Bjorken x for the nucleus B (target)
+    double fluxtube_normalization;
     bool saveSnapshots_;
+    bool use_stringy_proton_;
     std::vector<double> xSnapshotList_;
 
   public:
@@ -569,5 +571,15 @@ class Parameters {
             saveSnapshots_ = true;
     }
     bool getSaveSnapshots() { return saveSnapshots_; }
+
+    void setUse_stringy_proton(int x) {
+        if (x == 0)
+            use_stringy_proton_ = false;
+        else
+            use_stringy_proton_ = true;
+    }
+    bool getUse_stringy_proton() { return use_stringy_proton_; }
+    double getFluxTubeNormalization() { return fluxtube_normalization; }
+    void setFluxTubeNormalization(double x) { fluxtube_normalization = x; }
 };
 #endif  // Parameters_H

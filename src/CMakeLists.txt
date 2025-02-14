@@ -17,6 +17,7 @@ set (SOURCES
     MyEigen.cpp
     pretty_ostream.cpp
     Parameters.cpp
+    vector.cpp
     )
 
 set(CompileFlags "")

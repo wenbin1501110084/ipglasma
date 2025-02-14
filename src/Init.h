@@ -14,6 +14,8 @@
 #include "Parameters.h"
 #include "Random.h"
 #include "pretty_ostream.h"
+#include "vector.hpp"  // new in stringy proton: uses my vector class for easier vector algebra,
+// but other parts of the code still use the old structure
 
 enum Initialization_method {
     SAMPLE_COLOR_CHARGES,
@@ -53,7 +55,7 @@ class Init {
     Random *random_ptr_;
 
     Matrix one_;
-    vector<vector<double>> xq1, xq2, yq1, yq2, BGq1, BGq2, gauss1, gauss2;
+    vector<vector<double>> xq1, xq2, yq1, yq2, zq1, zq2, BGq1, BGq2, gauss1, gauss2;
 
   public:
     // Constructor.
@@ -91,6 +93,14 @@ class Init {
     Matrix getUfromExponent(std::vector<double> &in);
     bool findUInForwardLightconeBjoern(Matrix &U1, Matrix &U2, Matrix &Usol);
     bool findUInForwardLightconeChun(Matrix &U1, Matrix &U2, Matrix &Usol);
+
+    // Note: in the Stringy proton implementation Qs fluctuations are not included
+    // in the QuarkThickness() function
+    double QuarkThickness(double dist, int i, Parameters *param);
+
+    double FluxTubeThickness(
+        std::vector<Vec> hotspots, std::vector<double> Qsflucts, Vec b,
+        Parameters *param);
 
     void readInNucleusConfigs(
         const int nucleusA, const int lightNucleusOption,

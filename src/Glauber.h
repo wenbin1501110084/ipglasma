@@ -7,7 +7,7 @@
 
 #define TOL (1.0e-6)
 #define tiny (1.0e-10)
-#define limit 10000
+#define limit_Glauber 10000
 
 struct ReturnValue {
     double x;

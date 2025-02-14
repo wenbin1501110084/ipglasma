@@ -1065,7 +1065,7 @@ double Glauber::qnc7(
 
     area += -fabs(pre_sum) + fabs(left_sum) + fabs(right_sum);
 
-    if (fabs(ans - pre_sum) > tol * fabs(area) && (*count < limit)) {
+    if (fabs(ans - pre_sum) > tol * fabs(area) && (*count < limit_Glauber)) {
         /*
           branch by calling the function itself
           by calling the qnc7 twice, we are branching

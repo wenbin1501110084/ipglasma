@@ -350,7 +350,10 @@ int main(int argc, char *argv[]) {
                               : READ_WLINE_BINARY;
         }
         // First generate the V
-        init.init(&lat, &group, param, random, &glauber, init_method);
+        while (param->getSuccess() == 0) {
+            param->setSuccess(0);
+            init.init(&lat, &group, param, random, &glauber, init_method);
+        }
 
         if (param->getUseJIMWLK()) {
             messager.info("Start JIMWLK");
@@ -615,6 +618,8 @@ int readInput(
     param->setJimwlk_x0(setup->DFind(file_name, "jimwlk_ic_x"));
     param->setSaveSnapshots(setup->IFind(file_name, "saveSnapshots"));
     param->setxSnapshotList(setup->ListFind(file_name, "xSnapshotList"));
+    param->setUse_stringy_proton(setup->IFind(file_name, "Use_stringy_proton"));
+    param->setFluxTubeNormalization(setup->DFind(file_name, "fluxtubeNormalization"));
 
     if (rank == 0) cout << "done." << endl;
 
