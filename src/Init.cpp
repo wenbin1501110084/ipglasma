@@ -2578,7 +2578,7 @@ void Init::shiftFieldsWithImpactParameter(Lattice *lat, Glauber *glauber, Parame
 
     const double L = param->getL();
     const double a = L / N;  // lattice spacing in fm
-    int added_lines_d2 = 4;
+    int added_lines_d2 = 10;
     int N_m_added_lines_d2 = N - added_lines_d2;
     double bA = b;
     double bB = b;
@@ -2590,9 +2590,13 @@ void Init::shiftFieldsWithImpactParameter(Lattice *lat, Glauber *glauber, Parame
         if (AA1 < 4 && AA2 > 4) {
             bA = 0; 
             bB = 2.*b;
+            added_lines_d2 = added_lines_d2 *2;
+            N_m_added_lines_d2 = N_m_added_lines_d2 + added_lines_d2;
         } else if (AA2 < 4 && AA1 > 4) {
             bB = 0; 
             bA = 2.*b;
+            N_m_added_lines_d2 = N_m_added_lines_d2 - added_lines_d2;
+            added_lines_d2 = 0;
         }
         
         double xA = x - bA / 2. * cos(phiRP);
@@ -2605,28 +2609,17 @@ void Init::shiftFieldsWithImpactParameter(Lattice *lat, Glauber *glauber, Parame
         int ixB = static_cast<int>((xB + L / 2.) / a);
         int iyB = static_cast<int>((yB + L / 2.) / a);
 
-        int posA = ixA * N + iyA;
-        
-        if (ixA  < N_m_added_lines_d2 ) {
-            if (posA >= 0 && posA < N * N) {
-                lat->cells[ipos]->setU(lat_tmp.cells[posA]->getbuffer1());
-            } else {
-                lat->cells[ipos]->setU(one_);
-            }
-        } else {
+        if (ixA < 0 || ixA >= N_m_added_lines_d2 || iyA < 0 || iyA >= N) {
             lat->cells[ipos]->setU(one_);
-        }
-        
-        int posB = ixB * N + iyB;
-        
-        if (ixB  > added_lines_d2  ) {
-            if (posB >= 0 && posB < N * N) {
-                lat->cells[ipos]->setU2(lat_tmp.cells[posB]->getbuffer2());
-            } else {
-                lat->cells[ipos]->setU2(one_);
-            }
         } else {
+            int posA = ixA * N + iyA;
+            lat->cells[ipos]->setU(lat_tmp.cells[posA]->getbuffer1());
+        }
+        if (ixB < added_lines_d2 || ixB >= N || iyB < 0 || iyB >= N) {
             lat->cells[ipos]->setU2(one_);
+        } else {
+            int posB = ixB * N + iyB;
+            lat->cells[ipos]->setU2(lat_tmp.cells[posB]->getbuffer2());
         }
     }
 }

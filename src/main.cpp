@@ -374,6 +374,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (param->getMode() == 1) {
+            param->setSuccess(0);
             while (param->getSuccess() == 0) {
                 // sample collision impact parameter
                 // and compute Npart, Ncoll,etc, and check if there was a
