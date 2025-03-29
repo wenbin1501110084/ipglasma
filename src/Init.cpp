@@ -568,6 +568,16 @@ void Init::readInNucleusConfigs(
         fileName = "Ne20_PGCM.bin.in";
     } else if (nucleusA == 40) {
         fileName = "Ar40_VMC.bin.in";
+    } else if (nucleusA == 150) {
+        if (lightNucleusOption == 11) {
+            fileName = "Nd_p1.bin";
+        } else if (lightNucleusOption == 12) {
+            fileName = "Nd_p2.bin";
+        } else if (lightNucleusOption == 21) {
+            fileName = "Sm_p1.bin";
+        } else if (lightNucleusOption == 22) {
+            fileName = "Sm_p2.bin";
+        }
     } else {
         readFlag = false;
     }

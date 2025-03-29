@@ -131,6 +131,28 @@ void Glauber::FindNucleusData2(
         nucleus->beta3 = 0.;
         nucleus->beta4 = 0.00695;
         nucleus->gamma = 0.;
+    } else if (name.compare("Sm150") == 0) {
+        nucleus->A = 150;
+        nucleus->Z = 62;
+        densityFunction = "3Fermi";
+        nucleus->R_WS = 5.61;
+        nucleus->w_WS = 0.0;
+        nucleus->a_WS = 0.516;
+        nucleus->beta2 = 0.1668;
+        nucleus->beta3 = 0.;
+        nucleus->beta4 = 0.00695;
+        nucleus->gamma = 0.;
+    } else if (name.compare("Nd150") == 0) {
+        nucleus->A = 150;
+        nucleus->Z = 60;
+        densityFunction = "3Fermi";
+        nucleus->R_WS = 5.61;
+        nucleus->w_WS = 0.0;
+        nucleus->a_WS = 0.516;
+        nucleus->beta2 = 0.1668;
+        nucleus->beta3 = 0.;
+        nucleus->beta4 = 0.00695;
+        nucleus->gamma = 0.;
     } else if (name.compare("W") == 0) {
         nucleus->A = 184;
         nucleus->Z = 74;
