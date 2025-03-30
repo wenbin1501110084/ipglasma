@@ -372,14 +372,17 @@ int main(int argc, char *argv[]) {
                 lat.WriteWilsonLines(s2.str(), param, 2);  // nucleus B
             }
         } else {
-            if (param->getWriteWilsonLines() > 0) {
+           if (param->getWriteWilsonLines() > 0) {
                 std::stringstream s1;
-                s1 << "V-1";
+                s1 << "Final_x_"
+                   << std::to_string(param->getJimwlk_x_projectile()) << "_";;
                 lat.WriteWilsonLines(s1.str(), param, 1);  // nucleus A
                 std::stringstream s2;
-                s2 << "V-2";
+                s2 << "Final_x_"
+                   << std::to_string(param->getJimwlk_x_target()) << "_";
                 lat.WriteWilsonLines(s2.str(), param, 2);  // nucleus B
             }
+
         }
 
         if (param->getMode() == 1) {
