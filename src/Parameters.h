@@ -209,7 +209,7 @@ class Parameters {
 
     bool rotateReactionPlane_;  // flag to randomly rotate the event reaction
                                 // plane
-
+    bool useJIMWLK; // flag to use JIMWLK evolution
     bool computeGluonMultiplicity_;  // flag to compute gluonMultiplicity
 
     bool simpleLangevin_;
@@ -223,6 +223,13 @@ class Parameters {
     int steps_jimwlk;
     int measureSteps_jimwlk;
     double ds_jimwlk;
+    double jimwlk_alphas;  // 0 = running coupling, positive value = fixed
+                           // coupling
+    double x0_jimwlk; // Bjorken-x at the initial condition of the JIMLWK evolution
+
+    double jimwlk_x1; // Bjorken x for the nucleus A (projectile)
+    double jimwlk_x2;  // Bjorken x for the nucleus B (target)
+    
 
   public:
     // constructor:
@@ -532,6 +539,22 @@ class Parameters {
     int getMeasureSteps_jimwlk() { return measureSteps_jimwlk; }
     void setDs_jimwlk(double x) { ds_jimwlk = x; }
     double getDs_jimwlk() { return ds_jimwlk; }
+    void setJimwlk_alphas(double as) { jimwlk_alphas = as; }
+    double getJimwlk_alphas() { return jimwlk_alphas; }
+    void setJimwlk_x0(double x) { x0_jimwlk = x; }
+    void SetJimwlk_x_projectile(double x) { jimwlk_x1 = x; }
+    double GetJimwlk_x_projectile() { return jimwlk_x1; }
+    void SetJimwlk_x_target(double x) { jimwlk_x2 = x; }
+    double GetJimwlk_x_target() { return jimwlk_x2; }
+    double getJimwlk_x0() { return x0_jimwlk; }
+    bool getUseJIMWLK() const { return useJIMWLK; }
+    void setUseJIMWLK(int x) {
+        if (x == 0) {
+            useJIMWLK = false;
+        } else {
+            useJIMWLK = true;
+        }
+    }
     
 };
 #endif  // Parameters_H

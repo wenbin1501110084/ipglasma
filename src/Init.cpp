@@ -570,12 +570,16 @@ void Init::readInNucleusConfigs(
         } else if (lightNucleusOption == 3) {
             fileName = "O16_alphaCluster.bin.in";
         } else if (lightNucleusOption == 4) {
-            fileName = "O16_PGCM.bin.in";
+            fileName = "O16_PGCM_clustered_dmin0.bin.in";
         } else if (lightNucleusOption == 5) {
-            fileName = "O16_NLEFT.bin.in";
+            fileName = "O16_NLEFT_dmin0.5fm_positiveweights.bin.in";
         }
     } else if (nucleusA == 20) {
-        fileName = "Ne20_PGCM.bin.in";
+        fileName = "Ne20_PGCM_clustered_dmin0.bin.in";
+        if (lightNucleusOption == 4) {
+            fileName = "Ne20_PGCM_clustered_dmin0.bin.in";
+        } else if (lightNucleusOption == 5) {
+            fileName = "Ne20_NLEFT_dmin0.5fm_positiveweights.bin.in";
     } else if (nucleusA == 40) {
         fileName = "Ar40_VMC.bin.in";
     } else {
