@@ -580,6 +580,7 @@ void Init::readInNucleusConfigs(
             fileName = "Ne20_PGCM_clustered_dmin0.bin.in";
         } else if (lightNucleusOption == 5) {
             fileName = "Ne20_NLEFT_dmin0.5fm_positiveweights.bin.in";
+        }
     } else if (nucleusA == 40) {
         fileName = "Ar40_VMC.bin.in";
     } else {
