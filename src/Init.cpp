@@ -1138,7 +1138,7 @@ void Init::setColorChargeDensity(
                 check = 2;
             }
         }
-
+        if (param->getUseJIMWLK()) check = 2; // Always output the whole nulcues for the JIMWLK case
         double exponent = 5.6;  // see 1212.2974 Eq. (17)
         double xVal = 0.;
         if (check == 2) {
