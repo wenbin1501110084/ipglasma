@@ -560,6 +560,7 @@ int readInput(
     }
     param->setbmin(setup->DFind(file_name, "bmin"));
     param->setbmax(setup->DFind(file_name, "bmax"));
+    param->set_GeoM_shift(setup->DFind(file_name, "GeoM_shift"));
     param->setRotateReactionPlane(
         setup->IFind(file_name, "rotateReactionPlane"));
     param->setComputeGluonMultiplicity(

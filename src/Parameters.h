@@ -106,6 +106,7 @@ class Parameters {
                      // a constituent quark in GeV^(-2)
     double BGqVar_;  // the variance of the Gaussian width describing the shape
     double omega_;
+    double GeoM_shift_;
     // of a constituent quark in GeV^(-4)
     double dq_min_;  // the minimum distance between valence quarks [fm]
     double muZero;   // mu_0 in the running coupling (makes it infrared finite)
@@ -361,6 +362,8 @@ class Parameters {
     double getBGqVar() { return BGqVar_; }
     void setOmega(double x) { omega_ = x; }
     double getOmega() const { return omega_; }
+    void set_GeoM_shift(double x) { GeoM_shift_ = x; }
+    double get_GeoM_shift() const { return GeoM_shift_; }
     void setDqmin(double dq_min) { dq_min_ = dq_min; }
     double getDqmin() { return dq_min_; }
     void setMuZero(double x) { muZero = x; }

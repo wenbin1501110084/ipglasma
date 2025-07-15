@@ -777,13 +777,17 @@ double inthelperf_fluxtube_z(double z, void *p) {
  */
 double Init::FluxTubeThickness(
     std::vector<Vec> hotspots, std::vector<double> Qsflucts, Vec b,
-    Parameters *param) {
+    Parameters *param, Random *random) {
     inthelper_fluxtube par;
     par.init = this;
 
     try
     {
-        par.fermatpoint = Vec::GeometricMedian(hotspots);
+         Vec Vec_no_shift = Vec::GeometricMedian(hotspots);
+         par.fermatpoint = {Vec_no_shift.GetX() + param->get_GeoM_shift() * random->Gauss(), // get_GeoM_shift in fm
+                            Vec_no_shift.GetY() + param->get_GeoM_shift() * random->Gauss(),
+                            Vec_no_shift.GetZ() + param->get_GeoM_shift() * random->Gauss()
+                           };
     }
     catch (const std::runtime_error& e) {  // Catch convergence errors
         std::cerr << e.what() << std::endl;
@@ -1151,7 +1155,7 @@ void Init::setColorChargeDensity(
                             Qsflucts.push_back(gauss1[i][iq]);
                         }
                         Vec b_nucleon = Vec((xm - x), (ym - y), 0);  // distance from the center of the nucleon
-                        T = FluxTubeThickness(hotspots, Qsflucts, b_nucleon, param);
+                        T = FluxTubeThickness(hotspots, Qsflucts, b_nucleon, param, random);
                         if (T > 100000. ) {
                             GeometricMedian_is_OK = 0;
                         }
@@ -1208,7 +1212,7 @@ void Init::setColorChargeDensity(
                         }
 
                         Vec b_nucleon = Vec((xm - x), (ym - y), 0);  // distance from the center of the nucleon
-                        T = FluxTubeThickness(hotspots, Qsflucts, b_nucleon, param);
+                        T = FluxTubeThickness(hotspots, Qsflucts, b_nucleon, param, random);
                         if (T > 100000. ) {
                             GeometricMedian_is_OK = 0;
                         }

@@ -100,7 +100,7 @@ class Init {
 
     double FluxTubeThickness(
         std::vector<Vec> hotspots, std::vector<double> Qsflucts, Vec b,
-        Parameters *param);
+        Parameters *param, Random *random);
 
     void readInNucleusConfigs(
         const int nucleusA, const int lightNucleusOption,
