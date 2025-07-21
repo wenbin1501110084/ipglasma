@@ -780,10 +780,10 @@ double Init::FluxTubeThickness(
     Parameters *param, Random *random) {
     inthelper_fluxtube par;
     par.init = this;
-
+    Vec Vec_no_shift = {0.0, 0.0, 0.0};
     try
     {
-         Vec Vec_no_shift = Vec::GeometricMedian(hotspots);
+         Vec_no_shift = Vec::GeometricMedian(hotspots);
     }
     catch (const std::runtime_error& e) {  // Catch convergence errors
         std::cerr << e.what() << std::endl;
