@@ -784,10 +784,6 @@ double Init::FluxTubeThickness(
     try
     {
          Vec Vec_no_shift = Vec::GeometricMedian(hotspots);
-         par.fermatpoint = {Vec_no_shift.GetX() + param->get_GeoM_shift() * random->Gauss(), // get_GeoM_shift in fm
-                            Vec_no_shift.GetY() + param->get_GeoM_shift() * random->Gauss(),
-                            Vec_no_shift.GetZ() + param->get_GeoM_shift() * random->Gauss()
-                           };
     }
     catch (const std::runtime_error& e) {  // Catch convergence errors
         std::cerr << e.what() << std::endl;
@@ -797,7 +793,10 @@ double Init::FluxTubeThickness(
         std::cerr << "An unknown error occurred!" << std::endl;
         return 1;
     }
-    
+    par.fermatpoint = {Vec_no_shift.GetX() + param->get_GeoM_shift() * random->Gauss(), // get_GeoM_shift in fm
+                       Vec_no_shift.GetY() + param->get_GeoM_shift() * random->Gauss(),
+                       Vec_no_shift.GetZ() + param->get_GeoM_shift() * random->Gauss()
+                      };
     par.param = param;
     par.quarks = hotspots;
     par.Qsflucts = Qsflucts;

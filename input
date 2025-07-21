@@ -59,7 +59,7 @@ Ny 50
 useSeedList 0
 seed 13
 useTimeForSeed 1
-Projectile p
+Projectile Pb
 Target Pb
 bmin 0
 bmax 13.0
@@ -82,7 +82,7 @@ writeEvolution 0
 readInitialWilsonLines 0
 writeWilsonLines 0
 writeOutputsToHDF5 0
-useJIMWLK 1
+useJIMWLK 0
 mu0_jimwlk 0.28
 simpleLangevin 1
 alphas_jimwlk 0
@@ -96,5 +96,5 @@ saveSnapshots 0
 xSnapshotList 5e-3,2e-3,0.0001,0.00005,0.00001
 fluxtubeNormalization 1.1
 Use_stringy_proton 1
-GeoM_shift 0.0
+GeoM_shift 0.3
 EndOfFile
