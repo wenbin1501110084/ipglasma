@@ -781,6 +781,11 @@ double Init::FluxTubeThickness(
     inthelper_fluxtube par;
     par.init = this;
     Vec Vec_no_shift = {0.0, 0.0, 0.0};
+    Vec_no_shift = Vec::GeometricMedian(hotspots);
+    if (Vec_no_shift.GetX() > 1000.) {
+        return 110000.0;
+    }
+    /*
     try
     {
          Vec_no_shift = Vec::GeometricMedian(hotspots);
@@ -793,6 +798,7 @@ double Init::FluxTubeThickness(
         std::cerr << "An unknown error occurred!" << std::endl;
         return 1;
     }
+    */
     par.fermatpoint = {Vec_no_shift.GetX() + param->get_GeoM_shift() * random->Gauss(), // get_GeoM_shift in fm
                        Vec_no_shift.GetY() + param->get_GeoM_shift() * random->Gauss(),
                        Vec_no_shift.GetZ() + param->get_GeoM_shift() * random->Gauss()

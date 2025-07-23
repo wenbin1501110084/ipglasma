@@ -175,8 +175,9 @@ Vec Vec::GeometricMedian(std::vector<Vec>& points)  {
             error << points[k] << endl;
         error << "Best estimate: " << endl;
         error << y << endl;
-
-        throw std::runtime_error(error.str());
+        Vec y_temp(10000., 10000., 10000.);  // Original quess
+        return y_temp;
+        //throw std::runtime_error(error.str());
     }
 
     return y;
