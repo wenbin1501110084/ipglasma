@@ -134,7 +134,7 @@ Vec Vec::GeometricMedian(std::vector<Vec>& points)  {
     const double ITERACCURACY_ABS = 1e-6;
 
     const int MAXITER = 100;
-    Vec y(0, 0, 0);  // Original quess
+    Vec y(1.e-20, 1.e-20, 1.e-20);  // Original quess
     bool converged;
     for (unsigned int i = 0; i < MAXITER; i++) {
         // y_{i+1} = \sum_j x_j / ||x_j - y_i||  / \sum_j 1/||x_j - y_i ||
