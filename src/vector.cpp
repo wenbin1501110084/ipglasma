@@ -131,10 +131,10 @@ Vec Vec::GeometricMedian(std::vector<Vec>& points)  {
     // Convergence parameters: components can change relatively/absolutely less
     // than given values
     const double ITERACCURACY_REL = 0.001;
-    const double ITERACCURACY_ABS = 1e-6;
+    const double ITERACCURACY_ABS = 1.0e-6;
 
     const int MAXITER = 100;
-    Vec y(1.e-20, 1.e-20, 1.e-20);  // Original quess
+    Vec y(2.e-6, 2.e-6, 2.e-6);  // Original quess
     bool converged;
     for (unsigned int i = 0; i < MAXITER; i++) {
         // y_{i+1} = \sum_j x_j / ||x_j - y_i||  / \sum_j 1/||x_j - y_i ||
@@ -175,6 +175,7 @@ Vec Vec::GeometricMedian(std::vector<Vec>& points)  {
             error << points[k] << endl;
         error << "Best estimate: " << endl;
         error << y << endl;
+        cout << " Vector::GeometricMedian() didn't converge! " << endl;
         Vec y_temp(10000., 10000., 10000.);  // Original quess
         return y_temp;
         //throw std::runtime_error(error.str());
