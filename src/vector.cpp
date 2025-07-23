@@ -136,10 +136,12 @@ Vec Vec::GeometricMedian(std::vector<Vec>& points)  {
     const int MAXITER = 100;
     Vec y(2.e-6, 2.e-6, 2.e-6);  // Original quess
     bool converged;
+    stringstream erro2r;
+    erro2r << "Vector::GeometricMedian() starts " << endl;
     for (unsigned int i = 0; i < MAXITER; i++) {
         // y_{i+1} = \sum_j x_j / ||x_j - y_i||  / \sum_j 1/||x_j - y_i ||
         double normalization = 0;
-        Vec newvec(0, 0, 0);
+        Vec newvec(2.e-6, 2.e-6, 2.e-6);
         for (unsigned int j = 0; j < points.size(); j++) {
             Vec dist = points[j] - y;
             normalization += 1.0 / dist.Len();
@@ -166,7 +168,7 @@ Vec Vec::GeometricMedian(std::vector<Vec>& points)  {
         y = newvec;
         if (converged) break;
     }
-
+    erro2r << "Vector::GeometricMedian() ends " << endl;
     if (!converged) {
         stringstream error;
         error << "Vector::GeometricMedian() didn't converge!" << endl;
@@ -175,11 +177,11 @@ Vec Vec::GeometricMedian(std::vector<Vec>& points)  {
             error << points[k] << endl;
         error << "Best estimate: " << endl;
         error << y << endl;
-        cout << " Vector::GeometricMedian() didn't converge! " << endl;
         Vec y_temp(10000., 10000., 10000.);  // Original quess
         return y_temp;
         //throw std::runtime_error(error.str());
     }
+    erro2r << "Vector::GeometricMedian() converged " << endl;
 
     return y;
 }
