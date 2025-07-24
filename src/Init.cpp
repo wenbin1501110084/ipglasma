@@ -812,10 +812,10 @@ double Init::FluxTubeThickness(
     f.params = &par;
     f.function = &inthelperf_fluxtube_z;
     double result, error;
-    gsl_integration_workspace *w = gsl_integration_workspace_alloc(100);
+    gsl_integration_workspace *w = gsl_integration_workspace_alloc(200);
     // gsl_integration_workspace * w =  gsl_integration_workspace_alloc (10);
     gsl_integration_qag(
-        &f, -10, 10, 0, 0.02, 100, GSL_INTEG_GAUSS15, w, &result, &error);
+        &f, -10, 10, 1.e-8, 0.02, 200, GSL_INTEG_GAUSS15, w, &result, &error);
 
     gsl_integration_workspace_free(w);
 
