@@ -152,6 +152,8 @@ class Parameters {
     int lightNucleusOption;  // for light nuclei (carbon, oxygen): 1:
                              // Woods-Saxon; 2: variational MC; 3: alpha
                              // clusters
+    int jz_d;       // For the spin projection of the polarizztion of deutron 
+    int DoPol;      // 0: Don't the polarized target; -1: the perpendicular polarized target; 1: the parallel polarization
     int useGaussian;         // use a Gaussian profile on top of the constant
                              // background
     double dtau;             // time step in lattice units
@@ -459,6 +461,10 @@ class Parameters {
     int getUseGaussian() { return useGaussian; }
     void setlightNucleusOption(int x) { lightNucleusOption = x; };
     int getlightNucleusOption() { return lightNucleusOption; }
+    void setjz_d(int x) { jz_d = x; };
+    int getjz_d() { return jz_d; }
+    void setDoPol(int x) { DoPol = x; };
+    int getDoPol() { return DoPol; }
     void setRunWithQs(int x) { runWithQs = x; };
     int getRunWithQs() { return runWithQs; }
     void setRunWithkt(int x) { runWithkt = x; };

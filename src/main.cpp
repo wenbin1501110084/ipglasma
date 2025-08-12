@@ -571,6 +571,8 @@ int readInput(
     param->setUseNucleus(setup->IFind(file_name, "useNucleus"));
     param->setUseGaussian(setup->IFind(file_name, "useGaussian"));
     param->setlightNucleusOption(setup->IFind(file_name, "lightNucleusOption"));
+    param->setjz_d(setup->IFind(file_name, "jz_d"));
+    param->setDoPol(setup->IFind(file_name, "DoPol"));
     param->setg2mu(setup->DFind(file_name, "g2mu"));
     param->setMaxtime(setup->DFind(file_name, "maxtime"));
     double lattice_a = param->getL() / static_cast<double>(param->getSize());

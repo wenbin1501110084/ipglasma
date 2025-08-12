@@ -94,11 +94,12 @@ void Init::sampleTA(Parameters *param, Random *random, Glauber *glauber) {
             rv.proton = 1;
             nucleusA_.push_back(rv);
         } else if (A1 == 2) {
+          if (param->getDoPol() == 0) {
             // deuteron
             rv = glauber->SampleTARejection(random, 1);
             param->setRnp(sqrt(rv.x * rv.x + rv.y * rv.y));
-            // we sample the neutron proton distance, so distance to the center
-            // needs to be divided by 2
+            // we sample the neutron proton distance, so distance to the center needs
+            // to be divided by 2
             rv.x = rv.x / 2.;
             rv.y = rv.y / 2.;
             rv.z = 0.;
@@ -111,6 +112,39 @@ void Init::sampleTA(Parameters *param, Random *random, Glauber *glauber) {
             rv.z = -rv.z;
             rv.collided = 0;
             nucleusA_.push_back(rv);
+          } else { // Use the polarized d wave function
+            std::vector<PointProbability> distribution_pol_pm1;
+            std::vector<PointProbability> distribution_pol_0;
+            std::vector<double> rVr_pro_, rVr_r_; 
+            double total_Vr_ = glauber->readinrVr_for_pol_d(rVr_pro_, rVr_r_);
+            glauber->generate_2D_dis_plo_pm1(total_Vr_, distribution_pol_pm1, distribution_pol_0,rVr_r_, rVr_pro_);
+    
+            // Generate the CDF
+            std::vector<PointProbability> cdf_plo_pm1 = glauber->generate2DCDF(distribution_pol_pm1);
+            std::vector<PointProbability> cdf_plo_0   = glauber->generate2DCDF(distribution_pol_0);
+        
+            std::pair<double, double> pol_d;
+            if (param->getjz_d() == 1) pol_d = glauber->sampleFrom2DCDF(random, cdf_plo_pm1);
+            if (param->getjz_d() == 0) pol_d = glauber->sampleFrom2DCDF(random, cdf_plo_0); 
+        
+            double r_i   = pol_d.first;
+            double theta = pol_d.second;
+            double phi = 2. * M_PI * random->genrand64_real1();
+            rv.x = r_i*sin(theta)*cos(phi);
+            rv.y = r_i*sin(theta)*sin(phi);
+            rv.z = r_i*cos(theta);
+            rv.proton = 1;
+            rv.collided = 0;
+            nucleusA_.push_back(rv);
+
+            // other nucleon is 180 degrees rotated:
+            rv.x = -rv.x;
+            rv.y = -rv.y;
+            rv.z = -rv.z;
+            rv.proton = 0;
+            rv.collided = 0;
+            nucleusA_.push_back(rv);
+          }
         } else {
             generate_nucleus_configuration(
                 random, A1, Z1, glauber->GlauberData.Projectile.a_WS,
@@ -133,10 +167,11 @@ void Init::sampleTA(Parameters *param, Random *random, Glauber *glauber) {
             rv2.proton = 1;
             nucleusB_.push_back(rv2);
         } else if (A2 == 2) {
+          if (param->getDoPol() == 0) {
             // deuteron
             rv = glauber->SampleTARejection(random, 2);
-            // we sample the neutron proton distance, so distance to the center
-            // needs to be divided by 2
+            // we sample the neutron proton distance, so distance to the center needs
+            // to be divided by 2
             param->setRnp(sqrt(rv.x * rv.x + rv.y * rv.y));
 
             rv.x = rv.x / 2.;
@@ -153,6 +188,39 @@ void Init::sampleTA(Parameters *param, Random *random, Glauber *glauber) {
             rv.proton = 0;
             rv.collided = 0;
             nucleusB_.push_back(rv);
+          } else { // Use the polarized d wave function
+            std::vector<PointProbability> distribution_pol_pm1;
+            std::vector<PointProbability> distribution_pol_0;
+            std::vector<double> rVr_pro_, rVr_r_; 
+            double total_Vr_ = glauber->readinrVr_for_pol_d(rVr_pro_, rVr_r_);
+            glauber->generate_2D_dis_plo_pm1(total_Vr_, distribution_pol_pm1, distribution_pol_0, rVr_r_, rVr_pro_);
+    
+            // Generate the CDF
+            std::vector<PointProbability> cdf_plo_pm1 = glauber->generate2DCDF(distribution_pol_pm1);
+            std::vector<PointProbability> cdf_plo_0   = glauber->generate2DCDF(distribution_pol_0);
+        
+            std::pair<double, double> pol_d;
+            if (param->getjz_d() == 1) pol_d = glauber->sampleFrom2DCDF(random, cdf_plo_pm1);
+            if (param->getjz_d() == 0) pol_d = glauber->sampleFrom2DCDF(random, cdf_plo_0); 
+        
+            double r_i   = pol_d.first;
+            double theta = pol_d.second;
+            double phi = 2. * M_PI * random->genrand64_real1();
+            rv.x = r_i*sin(theta)*cos(phi);
+            rv.y = r_i*sin(theta)*sin(phi);
+            rv.z = r_i*cos(theta);
+            rv.proton = 1;
+            rv.collided = 0;
+            nucleusB_.push_back(rv);
+
+            // other nucleon is 180 degrees rotated:
+            rv.x = -rv.x;
+            rv.y = -rv.y;
+            rv.z = -rv.z;
+            rv.proton = 0;
+            rv.collided = 0;
+            nucleusB_.push_back(rv);
+          }
         } else {
             generate_nucleus_configuration(
                 random, A2, Z2, glauber->GlauberData.Target.a_WS,
@@ -424,8 +492,25 @@ void Init::sampleTA(Parameters *param, Random *random, Glauber *glauber) {
     // global rotation of the nucleus
     // rotate_nucleus(random, nucleusA_);
     // rotate_nucleus(random, nucleusB_);
-    rotate_nucleus_3D(random, nucleusA_);
-    rotate_nucleus_3D(random, nucleusB_);
+    //rotate_nucleus_3D(random, nucleusA_);
+    //rotate_nucleus_3D(random, nucleusB_);
+    if (param->getDoPol() == 0) {
+        rotate_nucleus_3D(random, nucleusA_);
+        rotate_nucleus_3D(random, nucleusB_);
+    } 
+    if (param->getDoPol() == -1) { // Do the perpendicular polarization
+        for (auto &n_i: nucleusA_) {
+            auto y_temp = n_i.y;
+            n_i.y = -n_i.z;
+            n_i.z = y_temp;
+        }
+        for (auto &n_i: nucleusB_) {
+            auto y_temp = n_i.y;
+            n_i.y = -n_i.z;
+            n_i.z = y_temp;
+        }
+    }
+
 }
 
 void Init::readNuclearQs(Parameters *param) {
