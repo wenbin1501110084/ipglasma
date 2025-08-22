@@ -99,4 +99,5 @@ Use_stringy_proton 0
 GeoM_shift 0.3
 jz_d  1
 DoPol  -1
+DoRot  1
 EndOfFile

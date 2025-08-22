@@ -154,6 +154,7 @@ class Parameters {
                              // clusters
     int jz_d;       // For the spin projection of the polarizztion of deutron 
     int DoPol;      // 0: Don't the polarized target; -1: the perpendicular polarized target; 1: the parallel polarization
+    int DoRot;      
     int useGaussian;         // use a Gaussian profile on top of the constant
                              // background
     double dtau;             // time step in lattice units
@@ -465,6 +466,8 @@ class Parameters {
     int getjz_d() { return jz_d; }
     void setDoPol(int x) { DoPol = x; };
     int getDoPol() { return DoPol; }
+    void set3DRotation(int x) { DoRot = x; };
+    int get3DRotation() { return DoRot; }
     void setRunWithQs(int x) { runWithQs = x; };
     int getRunWithQs() { return runWithQs; }
     void setRunWithkt(int x) { runWithkt = x; };

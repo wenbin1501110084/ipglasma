@@ -494,7 +494,7 @@ void Init::sampleTA(Parameters *param, Random *random, Glauber *glauber) {
     // rotate_nucleus(random, nucleusB_);
     //rotate_nucleus_3D(random, nucleusA_);
     //rotate_nucleus_3D(random, nucleusB_);
-    if (param->getDoPol() == 0) {
+    if (param->get3DRotation() != 0) {
         rotate_nucleus_3D(random, nucleusA_);
         rotate_nucleus_3D(random, nucleusB_);
     } 
