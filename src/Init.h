@@ -101,7 +101,7 @@ class Init {
     double FluxTubeThickness(
         std::vector<Vec> hotspots, std::vector<double> Qsflucts, Vec b,
         Parameters *param, Random *random);
-
+    Vec Get_Median(std::vector<Vec> hotspots, Parameters *param, Random *random);
     void readInNucleusConfigs(
         const int nucleusA, const int lightNucleusOption,
         vector<vector<float>> &nucleonPosArr);

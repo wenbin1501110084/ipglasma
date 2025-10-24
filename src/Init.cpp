@@ -907,6 +907,20 @@ double Init::FluxTubeThickness(
     return result;
 }
 
+Vec Init::Get_Median(std::vector<Vec> hotspots, Parameters *param, Random *random) {
+    Vec Vec_no_shift = {0.0, 0.0, 0.0};
+    Vec_no_shift = Vec::GeometricMedian(hotspots);
+    if (Vec_no_shift.GetX() > 1000.) {
+        return {110000.0, 110000.0, 110000.0};
+    }
+    Vec fermatpoint = {Vec_no_shift.GetX() + param->get_GeoM_shift() * random->Gauss(), // get_GeoM_shift in fm
+                   Vec_no_shift.GetY() + param->get_GeoM_shift() * random->Gauss(),
+                   Vec_no_shift.GetZ() + param->get_GeoM_shift() * random->Gauss()
+                  };
+    return fermatpoint;
+}
+
+
 double Init::QuarkThickness(double dist, int i, Parameters *param) {
     dist = dist * 5.068;  // I think at this point dist is in fm...
     double T = std::exp(-dist * dist / (2. * param->getBGq()))
@@ -1236,7 +1250,7 @@ void Init::setColorChargeDensity(
                 double T = 0.;
                 double bp2 = 0.;
                 if (param->getUseConstituentQuarkProton() > 0) {
-                    if (param->getUse_stringy_proton()) {
+                    if (param->getUse_stringy_proton() == 1) {
                         std::vector<Vec> hotspots;
                         std::vector<double> Qsflucts;
                         for (unsigned int iq = 0; iq < xq1[i].size(); iq++) {
@@ -1249,7 +1263,34 @@ void Init::setColorChargeDensity(
                         if (T > 100000. ) {
                             GeometricMedian_is_OK = 0;
                         }
-                    } else {
+                    } 
+                    if (param->getUse_stringy_proton() == 2) { // This is for the check with the stringy proton
+                        std::vector<Vec> hotspots;
+                        for (unsigned int iq = 0; iq < xq1[i].size(); iq++) {
+                            Vec tmp(xq1[i][iq], yq1[i][iq], zq1[i][iq]);
+                            hotspots.push_back(tmp);
+                        }
+                        Vec Median_point = Get_Median(hotspots, param, random);
+                        if (Median_point.GetX() > 100000. ) {
+                            T = 100001.;
+                            GeometricMedian_is_OK = 0;
+                        } else {
+                            for (unsigned int iq = 0; iq < xq1[i].size(); iq++) {
+                                double temp_r = random->genrand64_real3();
+                                double c_x = Median_point.GetX() + temp_r * (xq1[i][iq] - Median_point.GetX());
+                                double c_y = Median_point.GetY() + temp_r * (yq1[i][iq] - Median_point.GetY());
+                                bp2 = (xm + c_x - x) * (xm + c_x - x) + (ym + c_y - y) * (ym + c_y - y);
+                                bp2 /= hbarc * hbarc;
+
+                                T += exp(-bp2 / (2. * BGq1[i][iq]))
+                                     / (2. * M_PI * BGq1[i][iq])
+                                     / (static_cast<double>(xq1[i].size()))
+                                     * gauss1[i][iq];  // I removed the 2/3 here
+                                               // to make it a bit bigger
+                            }
+                        }
+                    }
+                    if (param->getUse_stringy_proton() == 0) {
                         for (unsigned int iq = 0; iq < xq1[i].size(); iq++) {
                             bp2 = (xm + xq1[i][iq] - x) * (xm + xq1[i][iq] - x)
                                    + (ym + yq1[i][iq] - y) * (ym + yq1[i][iq] - y);
@@ -1291,7 +1332,7 @@ void Init::setColorChargeDensity(
 
                 double T = 0.;
                 double bp2 = 0.;
-                if (param->getUseConstituentQuarkProton() > 0) {
+                if (param->getUseConstituentQuarkProton() == 1) {
                     if (param->getUse_stringy_proton()) {
                         std::vector<Vec> hotspots;
                         std::vector<double> Qsflucts;
@@ -1306,7 +1347,34 @@ void Init::setColorChargeDensity(
                         if (T > 100000. ) {
                             GeometricMedian_is_OK = 0;
                         }
-                    } else {
+                    }
+                    if (param->getUse_stringy_proton() == 2) { // This is for the check with the stringy proton
+                        std::vector<Vec> hotspots;
+                        for (unsigned int iq = 0; iq < xq2[i].size(); iq++) {
+                            Vec tmp(xq2[i][iq], yq2[i][iq], zq2[i][iq]);
+                            hotspots.push_back(tmp);
+                        }
+                        Vec Median_point = Get_Median(hotspots, param, random);
+                        if (Median_point.GetX() > 100000. ) {
+                            T = 100001.;
+                            GeometricMedian_is_OK = 0;
+                        } else {
+                            for (unsigned int iq = 0; iq < xq2[i].size(); iq++) {
+                                double temp_r = random->genrand64_real3();
+                                double c_x = Median_point.GetX() + temp_r * (xq2[i][iq] - Median_point.GetX());
+                                double c_y = Median_point.GetY() + temp_r * (yq2[i][iq] - Median_point.GetY());
+                                bp2 = (xm + c_x - x) * (xm + c_x - x) + (ym + c_y - y) * (ym + c_y - y);
+                                bp2 /= hbarc * hbarc;
+
+                                T += exp(-bp2 / (2. * BGq2[i][iq]))
+                                     / (2. * M_PI * BGq2[i][iq])
+                                     / (static_cast<double>(xq2[i].size()))
+                                     * gauss2[i][iq];  // I removed the 2/3 here
+                                               // to make it a bit bigger
+                            }
+                        }
+                    }
+                    if (param->getUse_stringy_proton() == 0) {
                         for (unsigned int iq = 0; iq < xq2[i].size(); iq++) {
                             bp2 = (xm + xq2[i][iq] - x) * (xm + xq2[i][iq] - x)
                                   + (ym + yq2[i][iq] - y) * (ym + yq2[i][iq] - y);
