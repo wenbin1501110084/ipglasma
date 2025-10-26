@@ -1333,7 +1333,7 @@ void Init::setColorChargeDensity(
                 double T = 0.;
                 double bp2 = 0.;
                 if (param->getUseConstituentQuarkProton() == 1) {
-                    if (param->getUse_stringy_proton()) {
+                    if (param->getUse_stringy_proton() == 1) {
                         std::vector<Vec> hotspots;
                         std::vector<double> Qsflucts;
                         for (unsigned int iq = 0; iq < xq2[i].size(); iq++) {
